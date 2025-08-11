@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:sqlserver://${DB_HOST:localhost}:${DB_PORT:1433};databaseName=${DB_NAME:crmdb}
+    url: jdbc:sqlserver://${DB_HOST:localhost}:${DB_PORT:1433};databaseName=${DB_NAME:crmdb};encrypt=true;trustServerCertificate=true
     username: ${DB_USER:sa}
     password: ${DB_PASSWORD:StrongPassword12345}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver

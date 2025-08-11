@@ -15,12 +15,13 @@ services:
 
   sqlcmd:
     image: mcr.microsoft.com/mssql-tools
-    container_name: sqlcmd
+    container_name: crm-sql-db
     depends_on:
       - mssql
     command: /opt/init-db/run-initialization.sh
     volumes:
       - ./init-db:/opt/init-db
+      - ./src/main/resources/db/migration:/flyway/sql
     environment:
       DB_HOST: crm-sql
       DB_NAME: crmdb
