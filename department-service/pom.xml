@@ -6,7 +6,7 @@
 		<groupId>com.crm</groupId>
 		<artifactId>crm-parent</artifactId>
 		<version>1.0.0</version>
-		<relativePath>../pom.xml</relativePath> <!-- lookup parent from repository -->
+		<relativePath>../pom.xml</relativePath> <!-- parenttan bakılır bu kısıma -->
 	</parent>
 	<groupId>com.example</groupId>
 	<artifactId>department-service</artifactId>
@@ -63,7 +63,12 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-	</dependencies>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <scope>provided</scope>
+            </dependency>
+    </dependencies>
 
 	<build>
 		<plugins>
