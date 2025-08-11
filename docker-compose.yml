@@ -19,14 +19,14 @@ services:
       timeout: 5s
       retries: 20
       start_period: 20s
-  department-service:
-      build:
-        context: ./department-service
-        dockerfile: Dockerfile
-      container_name: department-service
-      depends_on:
-        - mssql
 
+  department-service:
+    build:
+      context: ./department-service
+      dockerfile: department-service/Dockerfile
+    container_name: department-service
+    depends_on:
+      - mssql
   sqlcmd:
     image: mcr.microsoft.com/mssql-tools
     container_name: crm-sql-db

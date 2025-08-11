@@ -27,7 +27,7 @@
 		<url/>
 	</scm>
 	<properties>
-		<java.version>21</java.version>
+		<java.version>23</java.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -41,10 +41,12 @@
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-core</artifactId>
+            <version>10.10.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-sqlserver</artifactId>
+            <version>10.10.0</version>
 		</dependency>
 
 		<dependency>
@@ -80,11 +82,11 @@
 			<plugin>
 				<groupId>org.flywaydb</groupId>
 				<artifactId>flyway-maven-plugin</artifactId>
-				<version>9.22.3</version>
+                <version>10.10.0</version>
 				<configuration>
-					<url>jdbc:sqlserver://${DB_HOST:localhost}:${DB_PORT:1433};databaseName=${DB_NAME:crmdb};encrypt=true;trustServerCertificate=true</url>
-					<user>${DB_USER:sa}</user>
-					<password>${DB_PASSWORD:StrongPassword12345}</password>
+                    <url>jdbc:sqlserver://${DB_HOST}:${DB_PORT};databaseName=${DB_NAME};encrypt=true;trustServerCertificate=true</url>
+                    <user>${DB_USER}</user>
+                    <password>${DB_PASSWORD}</password>
 				</configuration>
 			</plugin>
 		</plugins>
