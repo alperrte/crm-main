@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  mssql:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    container_name: crm-sql
+    command: /opt/mssql/bin/sqlservr
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "1433:1433"
+    networks:
+      - db_net
+
+  sqlcmd:
+    image: mcr.microsoft.com/mssql-tools
+    container_name: sqlcmd
+    depends_on:
+      - mssql
+    command: /opt/init-db/run-initialization.sh
+    volumes:
+      - ./init-db:/opt/init-db
+    environment:
+      DB_HOST: crm-sql
+      DB_NAME: crmdb
+      DB_USER: sa
+      DB_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - db_net
+
+networks:
+  db_net:
+    name: db_net
