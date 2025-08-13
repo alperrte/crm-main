@@ -1,49 +1,81 @@
-version: '3.8'
+version: "3.8"
 
 services:
   mssql:
-    image: mcr.microsoft.com/azure-sql-edge:latest
-    container_name: crm-sql
-    command: /opt/mssql/bin/sqlservr
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql
     environment:
       ACCEPT_EULA: "Y"
-      SA_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "1433:1433"
-    networks:
-      - db_net
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
     healthcheck:
-      # HTTP/curl YOK! Sadece sqlcmd ile kontrol et
-      test: [ "CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U SA -P \"$${MSSQL_SA_PASSWORD}\" -C -Q \"SELECT 1\" || exit 1" ]
+      test: ["CMD-SHELL", "( [ -x /opt/mssql-tools18/bin/sqlcmd ] && /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" ) || ( [ -x /opt/mssql-tools/bin/sqlcmd ] && /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" ) || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 20
+      retries: 30
       start_period: 20s
+    volumes:
+      - mssql-data:/var/opt/mssql
+    env_file: [.env]
+    networks: [crm-network]
+
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: db-init
+    depends_on:
+      mssql:
+        condition: service_started
+    volumes:
+      - ./init-db:/init-db:ro
+    entrypoint: ["/bin/sh", "/init-db/run-initialization.sh"]
+    env_file: [.env]
+    networks: [crm-network]
+    restart: "no"
 
   department-service:
     build:
-      context: ./department-service
+      context: .
       dockerfile: department-service/Dockerfile
     container_name: department-service
-    depends_on:
-      - mssql
-  sqlcmd:
-    image: mcr.microsoft.com/mssql-tools
-    container_name: crm-sql-db
-    depends_on:
-      - mssql
-    command: /opt/init-db/run-initialization.sh
-    volumes:
-      - ./init-db:/opt/init-db
-      - ./src/main/resources/db/migration:/flyway/sql
+    env_file: [.env]
     environment:
-      DB_HOST: crm-sql
-      DB_NAME: crmdb
-      DB_USER: sa
-      DB_PASSWORD: ${DB_PASSWORD}
-    networks:
-      - db_net
+      SERVER_PORT: ${DEPARTMENT_SERVER_PORT}
+    ports:
+      - "${DEPARTMENT_SERVER_PORT}:${DEPARTMENT_SERVER_PORT}"
+    depends_on:
+      mssql:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${DEPARTMENT_SERVER_PORT}/actuator/health | grep UP >/dev/null 2>&1 || exit 1"]
+    networks: [crm-network]
+    restart: unless-stopped
+
+  person:
+    build:
+      context: .
+      dockerfile: person/Dockerfile
+    container_name: person
+    env_file: [.env]
+    environment:
+      SERVER_PORT: ${PERSON_SERVER_PORT}
+    ports:
+      - "${PERSON_SERVER_PORT}:${PERSON_SERVER_PORT}"
+    depends_on:
+      mssql:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+      department-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${PERSON_SERVER_PORT}/actuator/health | grep UP >/dev/null 2>&1 || exit 1"]
+    networks: [crm-network]
+    restart: unless-stopped
 
 networks:
-  db_net:
-    name: db_net
+  crm-network:
+    driver: bridge
+
+volumes:
+  mssql-data:

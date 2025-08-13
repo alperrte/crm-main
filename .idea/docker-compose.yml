@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  mssql:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    container_name: crm-sql
+    command: /opt/mssql/bin/sqlservr
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "1433:1433"
+    networks:
+      - db_net
+    healthcheck:
+      # HTTP/curl YOK! Sadece sqlcmd ile kontrol et
+      test: [ "CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U SA -P \"$${MSSQL_SA_PASSWORD}\" -C -Q \"SELECT 1\" || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  department-service:
+    build:
+      context: ./department-service
+      dockerfile: department-service/Dockerfile
+    container_name: department-service
+    depends_on:
+      - mssql
+  sqlcmd:
+    image: mcr.microsoft.com/mssql-tools
+    container_name: crm-sql-db
+    depends_on:
+      - mssql
+    command: /opt/init-db/run-initialization.sh
+    volumes:
+      - ./init-db:/opt/init-db
+      - ./src/main/resources/db/migration:/flyway/sql
+    environment:
+      DB_HOST: crm-sql
+      DB_NAME: crmdb
+      DB_USER: sa
+      DB_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - db_net
+
+networks:
+  db_net:
+    name: db_net
