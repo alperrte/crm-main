@@ -19,9 +19,11 @@ spring:
         default_schema: dbo
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations:
+      classpath:db/migration
     schemas: dbo
-    baseline-on-migrate: false
+    table: flyway_schema_history_person
+    baseline-on-migrate: true
 
 management:
   endpoints:

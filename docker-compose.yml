@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -7,28 +5,27 @@ services:
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "( [ -x /opt/mssql-tools18/bin/sqlcmd ] && /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" ) || ( [ -x /opt/mssql-tools/bin/sqlcmd ] && /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" ) || exit 1"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" > /dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 30
       start_period: 20s
-    volumes:
-      - mssql-data:/var/opt/mssql
-    env_file: [.env]
-    networks: [crm-network]
 
   db-init:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: db-init
     depends_on:
       mssql:
-        condition: service_started
-    volumes:
-      - ./init-db:/init-db:ro
-    entrypoint: ["/bin/sh", "/init-db/run-initialization.sh"]
-    env_file: [.env]
-    networks: [crm-network]
+        condition: service_healthy
+    entrypoint: ["/bin/bash","-lc"]
+    command: >
+      "/opt/mssql-tools18/bin/sqlcmd -S mssql -U sa -P \"$MSSQL_SA_PASSWORD\" -C -Q \"IF DB_ID('crmdb') IS NULL CREATE DATABASE crmdb;\""
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
     restart: "no"
 
   department-service:
@@ -36,19 +33,29 @@ services:
       context: .
       dockerfile: department-service/Dockerfile
     container_name: department-service
-    env_file: [.env]
+    env_file: [ .env ]
     environment:
-      SERVER_PORT: ${DEPARTMENT_SERVER_PORT}
+      SERVER_PORT: ${DEPARTMENT_SERVER_PORT:-8081}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_ENCRYPT: ${DB_ENCRYPT}
+      DB_TRUST_SERVER_CERT: ${DB_TRUST_SERVER_CERT}
     ports:
-      - "${DEPARTMENT_SERVER_PORT}:${DEPARTMENT_SERVER_PORT}"
+      - "${DEPARTMENT_SERVER_PORT:-8081}:${DEPARTMENT_SERVER_PORT:-8081}"
     depends_on:
       mssql:
         condition: service_healthy
       db-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:${DEPARTMENT_SERVER_PORT}/actuator/health | grep UP >/dev/null 2>&1 || exit 1"]
-    networks: [crm-network]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${SERVER_PORT:-8081}/actuator/health > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
     restart: unless-stopped
 
   person:
@@ -56,26 +63,64 @@ services:
       context: .
       dockerfile: person/Dockerfile
     container_name: person
-    env_file: [.env]
+    env_file: [ .env ]
     environment:
-      SERVER_PORT: ${PERSON_SERVER_PORT}
+      SERVER_PORT: ${PERSON_SERVER_PORT:-8082}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_ENCRYPT: ${DB_ENCRYPT}
+      DB_TRUST_SERVER_CERT: ${DB_TRUST_SERVER_CERT}
     ports:
-      - "${PERSON_SERVER_PORT}:${PERSON_SERVER_PORT}"
+      - "${PERSON_SERVER_PORT:-8082}:${PERSON_SERVER_PORT:-8082}"
     depends_on:
       mssql:
         condition: service_healthy
       db-init:
         condition: service_completed_successfully
-      department-service:
-        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:${PERSON_SERVER_PORT}/actuator/health | grep UP >/dev/null 2>&1 || exit 1"]
-    networks: [crm-network]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${SERVER_PORT:-8082}/actuator/health > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
     restart: unless-stopped
 
-networks:
-  crm-network:
-    driver: bridge
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: user-service
+    env_file: [ .env ]
+    environment:
+      SERVER_PORT: ${USER_SERVER_PORT:-8083}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_ENCRYPT: ${DB_ENCRYPT}
+      DB_TRUST_SERVER_CERT: ${DB_TRUST_SERVER_CERT}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION}
+      JWT_ISSUER: ${JWT_ISSUER}
+    ports:
+      - "${USER_SERVER_PORT:-8083}:${USER_SERVER_PORT:-8083}"
+    depends_on:
+      mssql:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${SERVER_PORT:-8083}/actuator/health > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 80s
+    restart: unless-stopped
 
 volumes:
   mssql-data:

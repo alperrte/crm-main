@@ -15,5 +15,6 @@ ALTER TABLE persons
             REFERENCES departments(department_id)
             ON DELETE NO ACTION
             ON UPDATE NO ACTION;
+ALTER TABLE persons ADD CONSTRAINT UQ_persons_email UNIQUE (email);
 
 

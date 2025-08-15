@@ -5,18 +5,20 @@ WORKDIR /workspace
 COPY pom.xml .
 COPY department-service/pom.xml department-service/pom.xml
 COPY person/pom.xml person/pom.xml
+COPY user-service/pom.xml user-service/pom.xml
+
 RUN mvn -q -DskipTests dependency:go-offline
 
 COPY department-service/src department-service/src
 COPY person/src person/src
+COPY user-service/src user-service/src
 
 RUN mvn -q -DskipTests -pl person -am clean package
-# BOOT jar: finalName = person -> person.jar
-RUN cp person/target/person-*.jar /tmp/app.jar
+RUN cp person/target/*.jar /tmp/app.jar
 
-# --- runtime ---
+# --- runtime stage ---
 FROM eclipse-temurin:23-jre
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 COPY --from=build /tmp/app.jar /app/app.jar
-ENTRYPOINT ["sh","-c","java ${JAVA_OPTS} -jar /app/app.jar"]
+ENTRYPOINT ["java","-jar","/app/app.jar"]
