@@ -34,8 +34,13 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Kullanıcı adı zaten mevcut: " + request.username());
         }
 
+        // BCrypt 72 byte limiti kontrolü (özellikle çok uzun şifrelerde hata önlemek için)
+        if (request.password().getBytes().length > 72) {
+            throw new IllegalArgumentException("password cannot be more than 72 bytes");
+        }
+
         UserEntity user = UserEntity.builder()
-                .username(request.username())
+                .username(request.username()) // Entity alanı ile DB kolonu uyumlu
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .role((request.role() == null || request.role().isBlank()) ? "ROLE_USER" : request.role())
                 .personId(request.personId())
@@ -52,6 +57,11 @@ public class AuthServiceImpl implements AuthService {
         UserEntity user = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new IllegalArgumentException("Kullanıcı bulunamadı"));
 
+        // BCrypt 72 byte limiti kontrolü
+        if (request.password().getBytes().length > 72) {
+            throw new IllegalArgumentException("password cannot be more than 72 bytes");
+        }
+
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new IllegalArgumentException("Kullanıcı adı veya şifre hatalı");
         }
@@ -62,8 +72,8 @@ public class AuthServiceImpl implements AuthService {
     /**
      * Refresh token doğrulama ve rotate etme.
      * - Gönderilen refreshToken imzalı ve süresi geçmemiş olmalı
-     * - DB'deki hash ile eşleşmeli (BCrypt.matches)
-     * - Başarılıysa yeni access+refresh üretip DB'ye yeni hash ve son kullanma tarihi yazılır
+     * - DB'deki kayıt ile eşleşmeli (plain text karşılaştırma)
+     * - Başarılıysa yeni access+refresh üretip DB'ye yeni değer ve son kullanma tarihi yazılır
      */
     @Transactional
     @Override
@@ -81,14 +91,15 @@ public class AuthServiceImpl implements AuthService {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Kullanıcı bulunamadı"));
 
-        // 3) DB'de saklı hash ve son kullanma ile doğrula
+        // 3) DB'de saklı refresh token ve son kullanma ile doğrula
         if (user.getRefreshTokenHash() == null || user.getRefreshTokenExpires() == null) {
             throw new IllegalArgumentException("Refresh token kayıtlı değil");
         }
         if (LocalDateTime.now().isAfter(user.getRefreshTokenExpires())) {
             throw new IllegalArgumentException("Refresh token süresi dolmuş");
         }
-        if (!passwordEncoder.matches(token, user.getRefreshTokenHash())) {
+        // ⬇ BCrypt yerine plain equals ile karşılaştırıyoruz, böylece 72 byte sınırı kalkıyor
+        if (!token.equals(user.getRefreshTokenHash())) {
             throw new IllegalArgumentException("Refresh token eşleşmedi (rotated veya invalid)");
         }
 
@@ -96,12 +107,13 @@ public class AuthServiceImpl implements AuthService {
         return generateTokensAndSave(user);
     }
 
-    /** Token üretimi + refresh hash/expires güncelleme */
+    /** Token üretimi + refresh token/expires güncelleme */
     private AuthResponse generateTokensAndSave(UserEntity user) {
         String accessToken = jwtUtil.generateAccessToken(user);
         String refreshToken = jwtUtil.generateRefreshToken(user);
 
-        user.setRefreshTokenHash(passwordEncoder.encode(refreshToken));
+        // ⬇ BCrypt yerine plain text saklıyoruz, böylece 72 byte limiti hatası ortadan kalkar
+        user.setRefreshTokenHash(refreshToken);
         user.setRefreshTokenExpires(LocalDateTime.now().plusSeconds(jwtUtil.getRefreshTtlSeconds()));
         userRepository.save(user);
 

@@ -11,8 +11,8 @@ import jakarta.validation.constraints.Size;
  * - personId: opsiyonel (kişiyi önceden oluşturduysan eşlemek için)
  */
 public record RegisterRequest(
-        @NotBlank String username,
-        @Size(min = 6) @NotBlank String password,
+        @NotBlank(message="Şifre alanı boş olamaz!") String username,
+            @Size(min = 6, max=72, message="Şifre minumum 6 karakter olabilir.") @NotBlank String password,
         String role,
         Long personId
 ) {}

@@ -36,24 +36,4 @@ public class UserEntity {
     @Column(name = "refresh_token_expires_at")
     private LocalDateTime refreshTokenExpires; // Refresh token son kullanma tarihi
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt; // Oluşum zamanı
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt; // Son güncelleme zamanı
-
-    @PrePersist
-    void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        this.createdAt = now;
-        this.updatedAt = now;
-        if (this.role == null || this.role.isBlank()) {
-            this.role = "ROLE_USER";
-        }
-    }
-
-    @PreUpdate
-    void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
 }
