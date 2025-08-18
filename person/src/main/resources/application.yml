@@ -17,6 +17,13 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.SQLServerDialect
         default_schema: dbo
+
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration: ${JWT_EXPIRATION}
+    issuer: ${JWT_ISSUER}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION}
+
   flyway:
     enabled: true
     locations:
