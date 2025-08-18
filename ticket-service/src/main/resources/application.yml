@@ -30,12 +30,11 @@ spring:
     table: flyway_schema_history_ticket
     baseline-on-migrate: true
 
-# JWT doğrulama için (JwtUtil burada okuyor)
-jwt:
-  secret: ${JWT_SECRET:change_me_min_32_chars}
-  expiration: ${JWT_EXPIRATION:900000}     # ms (default 15 dk)
-  issuer: ${JWT_ISSUER:user-service}        # bilgilendirme amaçlı
-  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration: ${JWT_EXPIRATION}
+    issuer: ${JWT_ISSUER}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION}
 
 # Actuator health/info testleri için
 management:
