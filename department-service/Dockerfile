@@ -7,6 +7,7 @@ COPY pom.xml .
 COPY department-service/pom.xml department-service/pom.xml
 COPY person/pom.xml person/pom.xml
 COPY user-service/pom.xml user-service/pom.xml
+COPY ticket-service/pom.xml ticket-service/pom.xml
 
 # Bağımlılıkları cache'e al
 RUN mvn -q -DskipTests dependency:go-offline
@@ -15,6 +16,7 @@ RUN mvn -q -DskipTests dependency:go-offline
 COPY department-service/src department-service/src
 COPY person/src person/src
 COPY user-service/src user-service/src
+COPY ticket-service/src ticket-service/src
 
 # Sadece department-service'i (bağımlıları ile) derle
 RUN mvn -q -DskipTests -pl department-service -am clean package

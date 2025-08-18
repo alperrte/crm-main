@@ -23,6 +23,7 @@
         <module>department-service</module>
         <module>person</module>
         <module>user-service</module>
+        <module>ticket-service</module>
     </modules>
 
 
@@ -48,6 +49,10 @@
         <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
     </dependencies>
 

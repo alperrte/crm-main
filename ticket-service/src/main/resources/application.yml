@@ -1,0 +1,44 @@
+server:
+  port: ${SERVER_PORT:${TICKET_SERVICE_PORT:8084}}
+
+spring:
+  application:
+    name: ticket-service
+  datasource:
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    url: jdbc:sqlserver://${DB_HOST:mssql}:${DB_PORT:1433};databaseName=${DB_NAME:crmdb};encrypt=${DB_ENCRYPT:true};trustServerCertificate=${DB_TRUST_SERVER_CERT:true}
+    username: ${DB_USER:sa}
+    password: ${DB_PASSWORD:${MSSQL_SA_PASSWORD}}
+
+  jwt:
+    # .env yoksa güvenli fallback olsun diye bir varsayılan bırakıyoruz
+    secret: ${JWT_SECRET:change_me_min_32_chars}
+    expiration: ${JWT_EXPIRATION:900000}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+    enabled: true
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.SQLServerDialect
+        default_schema: dbo
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    schemas: dbo
+    table: flyway_schema_history_ticket
+    baseline-on-migrate: true
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

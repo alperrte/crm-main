@@ -12,7 +12,7 @@ import jakarta.validation.constraints.Size;
  */
 public record RegisterRequest(
         @NotBlank(message="Şifre alanı boş olamaz!") String username,
-            @Size(min = 6, max=72, message="Şifre minumum 6 karakter olabilir.") @NotBlank String password,
+        @Size(min = 6, max=72, message="Şifre minumum 6 karakter olabilir.") @NotBlank String password,
         String role,
         Long personId
 ) {}

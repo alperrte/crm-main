@@ -17,6 +17,7 @@ public class PersonServiceImpl implements PersonService {
 
     @Override
     public List<PersonEntity> getAllPersons() {
+
         return personRepository.findByActiveTrue();
     }
 

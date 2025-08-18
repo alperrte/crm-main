@@ -15,8 +15,8 @@ COPY person/src person/src
 COPY user-service/src user-service/src
 COPY ticket-service/src ticket-service/src
 
-RUN mvn -q -DskipTests -pl person -am clean package
-RUN cp person/target/*.jar /tmp/app.jar
+RUN mvn -q -DskipTests -pl ticket-service -am clean package
+RUN cp ticket-service/target/*-SNAPSHOT.jar /tmp/app.jar
 
 # --- runtime stage ---
 FROM eclipse-temurin:23-jre

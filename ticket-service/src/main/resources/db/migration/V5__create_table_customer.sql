@@ -1,0 +1,10 @@
+CREATE TABLE customers(
+
+    customer_id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(50) NOT NULL,
+    surname NVARCHAR(50) NOT NULL,
+    email NVARCHAR(255) NOT NULL UNIQUE,
+    phone NVARCHAR(50) NULL
+
+);
+

@@ -5,12 +5,13 @@ CREATE TABLE users(
                       refresh_token_hash NVARCHAR(255),
                       refresh_token_expires_at DATETIME2,
                       role NVARCHAR(255),
-                      person_id BIGINT
+                      person_id BIGINT,
+                      CONSTRAINT CK_users_role CHECK (role IN ('ADMIN', 'USER'))
 );
 
 ALTER TABLE users
     ADD CONSTRAINT FK_users_persons
         FOREIGN KEY (person_id)
-            REFERENCES persons(person_id)
+            REFERENCES dbo.persons(person_id)
             ON DELETE NO ACTION
             ON UPDATE NO ACTION;
