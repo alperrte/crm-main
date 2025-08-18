@@ -1,21 +1,18 @@
+# src/main/resources/application.yml
 server:
+  # Önce SERVER_PORT, yoksa TICKET_SERVICE_PORT, o da yoksa 8084
   port: ${SERVER_PORT:${TICKET_SERVICE_PORT:8084}}
 
 spring:
   application:
     name: ticket-service
+
   datasource:
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     url: jdbc:sqlserver://${DB_HOST:mssql}:${DB_PORT:1433};databaseName=${DB_NAME:crmdb};encrypt=${DB_ENCRYPT:true};trustServerCertificate=${DB_TRUST_SERVER_CERT:true}
     username: ${DB_USER:sa}
+    # DB_PASSWORD yoksa MSSQL_SA_PASSWORD fallback
     password: ${DB_PASSWORD:${MSSQL_SA_PASSWORD}}
-
-  jwt:
-    # .env yoksa güvenli fallback olsun diye bir varsayılan bırakıyoruz
-    secret: ${JWT_SECRET:change_me_min_32_chars}
-    expiration: ${JWT_EXPIRATION:900000}
-    refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
-    enabled: true
 
   jpa:
     hibernate:
@@ -25,6 +22,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.SQLServerDialect
         default_schema: dbo
+
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -32,7 +30,14 @@ spring:
     table: flyway_schema_history_ticket
     baseline-on-migrate: true
 
+# JWT doğrulama için (JwtUtil burada okuyor)
+jwt:
+  secret: ${JWT_SECRET:change_me_min_32_chars}
+  expiration: ${JWT_EXPIRATION:900000}     # ms (default 15 dk)
+  issuer: ${JWT_ISSUER:user-service}        # bilgilendirme amaçlı
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
+# Actuator health/info testleri için
 management:
   endpoints:
     web:
@@ -40,5 +45,4 @@ management:
         include: health,info
   endpoint:
     health:
-      probes:
-        enabled: true
+      show-details: when_authorized

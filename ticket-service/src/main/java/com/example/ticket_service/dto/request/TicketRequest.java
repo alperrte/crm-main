@@ -1,4 +1,3 @@
-// src/main/java/com/example/ticket_service/dto/request/TicketRequest.java
 package com.example.ticket_service.dto.request;
 
 import lombok.Data;

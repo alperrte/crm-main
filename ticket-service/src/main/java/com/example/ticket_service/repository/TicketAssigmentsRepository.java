@@ -1,4 +1,3 @@
-// src/main/java/com/example/ticket_service/repository/TicketAssigmentsRepository.java
 package com.example.ticket_service.repository;
 
 import com.example.ticket_service.entity.TicketAssigmentsEntity;

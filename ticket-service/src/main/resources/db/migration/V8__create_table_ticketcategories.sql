@@ -13,7 +13,6 @@ GO
 CREATE UNIQUE INDEX UX_categories_key ON categories(category_key);
 GO
 
--- (Opsiyonel) Departman FK'sı: departments daha önce oluşmuşsa ekleyebilirsin
 ALTER TABLE categories
     ADD CONSTRAINT FK_categories_department
         FOREIGN KEY (target_department_id) REFERENCES dbo.departments(department_id)
@@ -23,10 +22,11 @@ GO
 
 MERGE INTO categories AS tgt
 USING (VALUES
-    ('IT_NETWORK',  N'Ağ / İnternet',     NULL),
-    ('IT_SOFTWARE', N'Yazılım Kurulumu',  NULL),
-    ('HR_REQUEST',  N'IK Talebi',         NULL),
-    ('GENERAL',     N'Genel Talep',       NULL)
+('CUSTOMER_SUPPORT', N'Müşteri Destek',         NULL),
+('TECH_SUPPORT',     N'Teknik Destek',          NULL),
+('IT_HELPDESK',      N'IT Yardım Masası',       NULL),
+('HR',               N'İnsan Kaynakları',       NULL),
+('FINANCE_BILLING',  N'Finans / Faturalama',    NULL)
 ) AS src(category_key, display_name, target_department_id)
 ON tgt.category_key = src.category_key
 WHEN NOT MATCHED THEN

@@ -1,4 +1,3 @@
-// src/main/java/com/example/ticket_service/dto/response/TicketResponse.java
 package com.example.ticket_service.dto.response;
 
 import lombok.Builder;

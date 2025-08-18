@@ -4,7 +4,6 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-
     <parent>
         <groupId>com.crm</groupId>
         <artifactId>crm-parent</artifactId>
@@ -17,15 +16,17 @@
     <description>Ticket Microservice</description>
 
     <dependencies>
-        <!--
-        Spring Web Eklentisi
-        -->
+        <!-- Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- JWT (jjwt) -->
+        <!-- Security + JWT -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -44,40 +45,11 @@
             <scope>runtime</scope>
         </dependency>
 
-
-
-        <!-- JPA + Hibernate: MSSQL üzerinde ORM için. -->
+        <!-- JPA + MSSQL -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-
-        <!--
-          Validation: DTO’larda @Valid, @NotBlank, @Email vb. için.
-        -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-
-        <!--
-          Actuator: /actuator/health vb. endpoint’ler; Docker healthcheck ve izleme için faydalı.
-        -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-
-        <!--
-          MSSQL JDBC sürücüsü: Versiyonu parent’taki property’den (${mssql.jdbc.version}) alır.
-          Runtime scope: derleme anında gerekmez, çalışma anında gereklidir.
-        -->
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
@@ -85,9 +57,19 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!--
-          Flyway core + SQL Server desteği: Versiyonlar parent’taki ${flyway.version} property’sinden gelir.
-        -->
+        <!-- Validation -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Actuator -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Flyway (SQL Server) -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -99,10 +81,7 @@
             <version>${flyway.version}</version>
         </dependency>
 
-        <!--
-          Devtools (opsiyonel): Lokal geliştirmede canlı yeniden başlatma.
-          Production’da devre dışı bırakılır; runtime + optional.
-        -->
+        <!-- Devtools (opsiyonel) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -110,10 +89,7 @@
             <optional>true</optional>
         </dependency>
 
-        <!--
-          Lombok: Sadece derleme sırasında gerekli (provided).
-          Not: Aşağıda maven-compiler-plugin’de annotationProcessorPaths ile etkinleştirildi.
-        -->
+        <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -121,14 +97,12 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Test bağımlılıkları -->
+        <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- Testcontainers entegrasyonu (opsiyonel ama entegre testler için faydalı) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-testcontainers</artifactId>
@@ -143,16 +117,11 @@
 
     <build>
         <plugins>
-            <!--
-              Spring Boot Maven Plugin:
-              - Repackage ile tek çalıştırılabilir fat-jar üretir.
-              - “no main manifest attribute” tipindeki çalıştırma sorunlarını çözer.
-            -->
+            <!-- Spring Boot fat-jar -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <!-- Lombok zaten provided; yine de jar’a dahil edilmemesi için exclude bırakılabilir -->
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
@@ -162,10 +131,7 @@
                 </configuration>
             </plugin>
 
-            <!--
-              Java 23 derleme ayarları + Lombok annotation processing.
-              (Parent’ta Java versiyonu yönetilmiyorsa burada açıkça 23 belirlenir.)
-            -->
+            <!-- Java 23 + Lombok AP -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

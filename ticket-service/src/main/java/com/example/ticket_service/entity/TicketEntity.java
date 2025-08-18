@@ -1,4 +1,3 @@
-// src/main/java/com/example/ticket_service/entity/TicketEntity.java
 package com.example.ticket_service.entity;
 
 import jakarta.persistence.*;
