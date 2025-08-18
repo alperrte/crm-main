@@ -25,6 +25,12 @@ spring:
     table: flyway_schema_history_department
     baseline-on-migrate: true
 
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration: ${JWT_EXPIRATION}
+    issuer: ${JWT_ISSUER}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION}
+
 management:
   endpoints:
     web:
