@@ -22,11 +22,11 @@ GO
 
 MERGE INTO categories AS tgt
 USING (VALUES
-('CUSTOMER_SUPPORT', N'Müşteri Destek',         NULL),
-('TECH_SUPPORT',     N'Teknik Destek',          NULL),
-('IT_HELPDESK',      N'IT Yardım Masası',       NULL),
-('HR',               N'İnsan Kaynakları',       NULL),
-('FINANCE_BILLING',  N'Finans / Faturalama',    NULL)
+('CUSTOMER_SUPPORT', N'Müşteri Destek',         1),
+('TECH_SUPPORT',     N'Teknik Destek',          2),
+('IT_HELPDESK',      N'IT Yardım Masası',       3),
+('HR',               N'İnsan Kaynakları',       4),
+('FINANCE_BILLING',  N'Finans / Faturalama',    5)
 ) AS src(category_key, display_name, target_department_id)
 ON tgt.category_key = src.category_key
 WHEN NOT MATCHED THEN
