@@ -22,7 +22,7 @@ const RegisterPage: React.FC = () => {
         }
 
         try {
-            const response = await api.post("/auth/register", {
+            const response = await api.post("/api/auth/register", {
                 username: form.username,
                 email: form.email,
                 password: form.password,

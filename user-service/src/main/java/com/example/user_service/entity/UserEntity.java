@@ -16,24 +16,26 @@ public class UserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="user_id")
-    private Long id; // PK
+    private Long id;
 
     @Column(name = "user_name")
-    private String username; // Girişte kullanılacak benzersiz alan
+    private String username;
+
+    @Column(name = "email")
+    private String email; // yeni
 
     @Column(name = "password_hash")
-    private String passwordHash; // BCrypt hash
+    private String passwordHash;
 
-    @Column(name = "role", nullable = false, length = 64)
-    private String role; // ROLE_USER / ROLE_ADMIN
+    @Column(name = "role")
+    private String role; // 'ADMIN' | 'USER' (DB tarafı böyle, Spring tarafında ROLE_ prefix mapping yapacağız)
 
     @Column(name = "person_id")
-    private Long personId; // İsteğe bağlı eşleştirme
+    private Long personId; // opsiyonel, şu an register’dan almıyoruz
 
     @Column(name = "refresh_token_hash")
-    private String refreshTokenHash; // Refresh token'ın BCrypt hash'i
+    private String refreshTokenHash; // refresh token plain (rotate için)
 
     @Column(name = "refresh_token_expires_at")
-    private LocalDateTime refreshTokenExpires; // Refresh token son kullanma tarihi
-
+    private LocalDateTime refreshTokenExpires;
 }

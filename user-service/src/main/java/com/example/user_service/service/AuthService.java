@@ -5,9 +5,10 @@ import com.example.user_service.dto.request.RefreshRequest;
 import com.example.user_service.dto.request.RegisterRequest;
 import com.example.user_service.dto.response.AuthResponse;
 
-/** Kimlik iş akışları. */
 public interface AuthService {
-    AuthResponse register(RegisterRequest request);
+    AuthResponse registerUser(RegisterRequest request);   // public
+    AuthResponse registerAdmin(RegisterRequest request);  // sadece ADMIN
+
     AuthResponse login(LoginRequest request);
     AuthResponse refresh(RefreshRequest request);
 }

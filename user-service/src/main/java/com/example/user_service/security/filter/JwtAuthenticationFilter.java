@@ -61,10 +61,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String username = jwtUtil.extractUsername(token);
         String role = jwtUtil.extractRole(token);
 
+        // Burada önemli kısım:
+        // Spring Security "hasRole('ADMIN')" dediğimizde "ROLE_ADMIN" authority arar.
+        // Bu yüzden JWT'den gelen "ADMIN" -> "ROLE_ADMIN" olarak çevrilir.
         List<SimpleGrantedAuthority> authorities =
-                (role != null) ? List.of(new SimpleGrantedAuthority(role))
+                (role != null) ? List.of(new SimpleGrantedAuthority("ROLE_" + role))
                         : List.of();
 
+        // Username + rol bilgilerini SecurityContext'e koyuyoruz
         var authentication =
                 new UsernamePasswordAuthenticationToken(username, null, authorities);
 
