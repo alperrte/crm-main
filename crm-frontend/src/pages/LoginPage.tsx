@@ -30,7 +30,7 @@ const LoginPage: React.FC = () => {
 
             localStorage.setItem("token", token);
 
-            alert("Login successful!");
+            alert("Giriş başarılı!");
             console.log("JWT:", token);
 
             // 🔑 Token decode ederek role bilgisini al
