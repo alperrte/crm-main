@@ -52,7 +52,7 @@ const LoginPage: React.FC = () => {
             }
 
         } catch (error: any) {
-            alert("Giriş yapılamadı!Kullanıcı adı veya parola hatalı.");
+            alert("Giriş yapılamadı! Kullanıcı adı veya parola hatalı.");
             console.error(error.response?.data || error.message);
         }
     };
