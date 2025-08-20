@@ -91,7 +91,7 @@ const RegisterPage: React.FC = () => {
                 </button>
 
                 <div className="flex justify-end mt-3 text-sm text-blue-600">
-                    <a href="/">Kayıtlı hesabınız mı mevcut ?</a>
+                    <a href="/">Kayıtlı hesabınız mevcut mu?</a>
                 </div>
             </form>
         </div>
