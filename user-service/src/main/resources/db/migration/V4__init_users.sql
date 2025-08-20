@@ -1,3 +1,4 @@
+
 CREATE TABLE users(
                       user_id BIGINT IDENTITY(1,1) PRIMARY KEY,
                       user_name NVARCHAR(255) NOT NULL,
@@ -7,7 +8,7 @@ CREATE TABLE users(
                       role NVARCHAR(255),
                       person_id BIGINT,
                       email NVARCHAR(255) NOT NULL UNIQUE, -->Yeni oluşturduğumuz tablonun email zorunlu ve unique hale gelmesi için zorunludur..
-                      CONSTRAINT CK_users_role CHECK (role IN ('ADMIN', 'USER'))
+                      CONSTRAINT CK_users_role CHECK (role IN ('ADMIN', 'USER','PERSON'))
 );
 
 ALTER TABLE users

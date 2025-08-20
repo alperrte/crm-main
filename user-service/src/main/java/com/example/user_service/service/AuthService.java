@@ -8,7 +8,7 @@ import com.example.user_service.dto.response.AuthResponse;
 public interface AuthService {
     AuthResponse registerUser(RegisterRequest request);   // public
     AuthResponse registerAdmin(RegisterRequest request);  // sadece ADMIN
-
+    AuthResponse registerPerson(RegisterRequest request);
     AuthResponse login(LoginRequest request);
     AuthResponse refresh(RefreshRequest request);
 }

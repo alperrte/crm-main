@@ -74,6 +74,28 @@ public class AuthServiceImpl implements AuthService {
 
     @Transactional
     @Override
+    public AuthResponse registerPerson(RegisterRequest request) {
+        if (userRepository.existsByUsername(request.username()))
+            throw new IllegalArgumentException("Kullanıcı adı zaten mevcut: " + request.username());
+        if (userRepository.existsByEmail(request.email()))
+            throw new IllegalArgumentException("Email zaten kayıtlı: " + request.email());
+
+        if (request.password().getBytes().length > 72)
+            throw new IllegalArgumentException("password cannot be more than 72 bytes");
+
+        UserEntity user = UserEntity.builder()
+                .username(request.username())
+                .email(request.email())
+                .passwordHash(passwordEncoder.encode(request.password()))
+                .role("PERSON")   // 👈 çalışan kaydı
+                .build();
+
+        userRepository.save(user);
+        return generateTokensAndSave(user);
+    }
+
+    @Transactional
+    @Override
     public AuthResponse login(LoginRequest request) {
         UserEntity user = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new IllegalArgumentException("Kullanıcı bulunamadı"));

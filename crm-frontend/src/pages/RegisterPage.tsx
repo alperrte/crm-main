@@ -17,7 +17,7 @@ const RegisterPage: React.FC = () => {
         e.preventDefault();
 
         if (form.password !== form.confirmPassword) {
-            alert("Passwords do not match!");
+            alert("Şifreler eşleşmiyor kontrol ediniz!");
             return;
         }
 
@@ -28,11 +28,11 @@ const RegisterPage: React.FC = () => {
                 password: form.password,
             });
 
-            alert("Registration successful!");
+            alert("Kaydınız başarıyla oluşturulmuştur.");
             console.log(response.data);
             window.location.href = "/";
         } catch (error: any) {
-            alert("Registration failed!");
+            alert("Hata! Kayıt oluşturulamadı.");
             console.error(error.response?.data || error.message);
         }
     };
@@ -45,16 +45,16 @@ const RegisterPage: React.FC = () => {
             >
                 <div className="flex justify-center mb-4">
                     <div className="w-16 h-16 bg-green-600 text-white flex items-center justify-center rounded-full text-2xl font-bold">
-                        R
+                        K
                     </div>
                 </div>
 
-                <h2 className="text-2xl font-bold mb-4 text-center">Register</h2>
+                <h2 className="text-2xl font-bold mb-4 text-center">Kayıt Ol</h2>
 
                 <input
                     type="text"
                     name="username"
-                    placeholder="Username"
+                    placeholder="Kullanıcı Adı"
                     onChange={handleChange}
                     className="w-full mb-3 p-2 border rounded"
                 />
@@ -70,7 +70,7 @@ const RegisterPage: React.FC = () => {
                 <input
                     type="password"
                     name="password"
-                    placeholder="Password"
+                    placeholder="Şifre"
                     onChange={handleChange}
                     className="w-full mb-3 p-2 border rounded"
                 />
@@ -78,7 +78,7 @@ const RegisterPage: React.FC = () => {
                 <input
                     type="password"
                     name="confirmPassword"
-                    placeholder="Confirm Password"
+                    placeholder="Şifre Onay"
                     onChange={handleChange}
                     className="w-full mb-3 p-2 border rounded"
                 />
@@ -87,11 +87,11 @@ const RegisterPage: React.FC = () => {
                     type="submit"
                     className="w-full bg-green-600 text-white p-2 rounded"
                 >
-                    Register
+                    Kayıt ol
                 </button>
 
                 <div className="flex justify-end mt-3 text-sm text-blue-600">
-                    <a href="/">Already have an account?</a>
+                    <a href="/">Kayıtlı hesabınız mı mevcut ?</a>
                 </div>
             </form>
         </div>

@@ -1,6 +1,8 @@
-// src/main/java/com/example/user_service/controller/AuthController.java
 package com.example.user_service.controller;
 
+import com.example.user_service.entity.UserEntity;
+import com.example.user_service.repository.UserRepository;
+import java.util.List;
 import com.example.user_service.dto.request.LoginRequest;
 import com.example.user_service.dto.request.RefreshRequest;
 import com.example.user_service.dto.request.RegisterRequest;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+
 
     /** Public: USER kaydı */
     @PostMapping("/register")
@@ -47,4 +50,5 @@ public class AuthController {
     public ResponseEntity<Object> me(Authentication auth) {
         return ResponseEntity.ok(java.util.Map.of("username", auth.getName()));
     }
+
 }

@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -43,7 +44,14 @@ public class SecurityConfig {
                 // CSRF kapalı (JWT kullandığımız için)
                 .csrf(AbstractHttpConfigurer::disable)
 
+                // 🔑 CORS desteğini aktif et (WebConfig'teki ayarları kullanacak)
+                .cors(cors -> {})
+
                 .authorizeHttpRequests(reg -> reg
+                        // Preflight isteklerine izin ver
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // Public endpointler
                         .requestMatchers(
                                 "/api/auth/register",
                                 "/api/auth/login",
@@ -52,6 +60,8 @@ public class SecurityConfig {
                                 "/actuator",
                                 "/actuator/**"
                         ).permitAll()
+
+                        // diğer tüm istekler kimlik doğrulaması ister
                         .anyRequest().authenticated()
                 )
 
