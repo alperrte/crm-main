@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import api from "../api"; // axios yerine api.ts kullanıyoruz
+import api from "../api/userApi"; // axios yerine api.ts kullanıyoruz
+import { Link } from "react-router-dom";
 
 interface User {
     id: number;
@@ -79,6 +80,10 @@ const AdminPanel: React.FC = () => {
                                 className="bg-yellow-600 text-white px-2 py-1 ml-2 rounded"
                             >
                                 User Yap
+                            </button>
+
+                            <button style={{ marginLeft: 8 }}>
+                                <Link to="/admin/departments">Departman Kontrolleri</Link>
                             </button>
                         </td>
                     </tr>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import api from "../api";
+import userApi from "../api/userApi";
 
 const RegisterPage: React.FC = () => {
     const [form, setForm] = useState({
@@ -22,7 +22,7 @@ const RegisterPage: React.FC = () => {
         }
 
         try {
-            const response = await api.post("/api/auth/register", {
+            const response = await userApi.post("/api/auth/register", {
                 username: form.username,
                 email: form.email,
                 password: form.password,

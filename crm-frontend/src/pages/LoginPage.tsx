@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import api from "../api";
+import userApi from "../api/userApi";
 import { useNavigate } from "react-router-dom"; // yönlendirme için eklendi
 
 const LoginPage: React.FC = () => {
@@ -14,7 +14,7 @@ const LoginPage: React.FC = () => {
         e.preventDefault();
 
         try {
-            const response = await api.post("/api/auth/login", {
+            const response = await userApi.post("/api/auth/login", {
                 username: form.username,
                 password: form.password,
             });

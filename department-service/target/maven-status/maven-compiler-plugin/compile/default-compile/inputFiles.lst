@@ -1,3 +1,4 @@
+C:\Users\alper\Desktop\Ana Proje\crm-main\department-service\src\main\java\com\example\department_service\controller\AdminController.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\department-service\src\main\java\com\example\department_service\controller\DepartmentController.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\department-service\src\main\java\com\example\department_service\data\entity\DepartmentEntity.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\department-service\src\main\java\com\example\department_service\data\repository\DepartmentRepository.java
@@ -7,5 +8,6 @@ C:\Users\alper\Desktop\Ana Proje\crm-main\department-service\src\main\java\com\e
 C:\Users\alper\Desktop\Ana Proje\crm-main\department-service\src\main\java\com\example\department_service\dto\request\DepartmentRequest.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\department-service\src\main\java\com\example\department_service\dto\response\DepartmentResponse.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\department-service\src\main\java\com\example\department_service\security\config\SecurityConfig.java
+C:\Users\alper\Desktop\Ana Proje\crm-main\department-service\src\main\java\com\example\department_service\security\config\WebConfig.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\department-service\src\main\java\com\example\department_service\security\filter\JwtAuthFilter.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\department-service\src\main\java\com\example\department_service\security\jwt\JwtUtil.java
