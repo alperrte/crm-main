@@ -19,6 +19,7 @@ public class DepartmentServiceImpl implements DepartmentService {
 
     @Override
     public List<DepartmentEntity> getAllDepartments() {
+
         return departmentRepository.findAllByDeletedFalse();
     }
 

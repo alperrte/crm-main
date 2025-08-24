@@ -1,6 +1,6 @@
-// src/pages/DepartmentsPage.tsx
 import React, { useEffect, useState } from "react";
 import departmentApi from "../api/departmentApi";
+import { Link } from "react-router-dom";
 
 type Department = {
     id: number;
@@ -18,6 +18,12 @@ const DepartmentsPage: React.FC = () => {
     const [isEdit, setIsEdit] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
     const [form, setForm] = useState<Omit<Department, "id">>(emptyForm);
+
+    // ✅ Dropdown state
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    // ✅ Silme onay için state
+    const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
     const fetchAll = async () => {
         setLoading(true);
@@ -60,109 +66,216 @@ const DepartmentsPage: React.FC = () => {
         fetchAll();
     };
 
-    const remove = async (id: number) => {
-        if (!window.confirm("Silmek istediğinize emin misiniz?")) return;
-        await departmentApi.delete(`/api/admin/departments/${id}`);
-        fetchAll();
+    // ✅ Silme
+    const deleteDepartment = async (id: number) => {
+        try {
+            await departmentApi.delete(`/api/admin/departments/${id}`);
+            setItems((prev) => prev.filter((d) => d.id !== id));
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setConfirmDeleteId(null);
+        }
     };
 
     return (
-        <div style={{ padding: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                <h2>Departman Kontrolleri</h2>
-                <button onClick={openCreate}>+ Oluştur</button>
+        <div className="min-h-screen p-6 bg-gradient-to-br from-indigo-400 to-purple-600 flex justify-center items-start">
+            <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6 flex justify-between items-center relative">
+                    <h1 className="text-3xl font-light tracking-wide">Departman Kontrolleri</h1>
+
+                    <div className="flex items-center gap-4">
+                        {/* 🔹 Kontroller dropdown menüsü */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setMenuOpen(!menuOpen)}
+                                className="px-5 py-2 rounded-full bg-white/20 border border-white/30 hover:bg-white/30 transition shadow"
+                            >
+                                Kontroller
+                            </button>
+                            {menuOpen && (
+                                <div className="absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-lg overflow-hidden z-20">
+                                    <Link
+                                        to="/admin"
+                                        className="block px-4 py-2 hover:bg-gray-100"
+                                    >
+                                        Admin Panel
+                                    </Link>
+                                    <a
+                                        href="http://localhost:3000/admin/roles"
+                                        className="block px-4 py-2 hover:bg-gray-100"
+                                    >
+                                        Rol Kontrolleri
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 🔹 Senin mevcut +Oluştur butonun */}
+                        <button
+                            onClick={openCreate}
+                            className="flex items-center gap-2 bg-white/20 border-2 border-white/30 px-5 py-2 rounded-full hover:bg-white/30 transition shadow"
+                        >
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                            >
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            + Oluştur
+                        </button>
+                    </div>
+                </div>
+
+                {/* Table */}
+                <div className="p-6">
+                    {loading ? (
+                        <p>Yükleniyor…</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse rounded-xl shadow-lg overflow-hidden">
+                                <thead>
+                                <tr className="bg-gray-100 text-gray-700 uppercase text-sm tracking-wider">
+                                    <th className="px-6 py-3 text-left">ID</th>
+                                    <th className="px-6 py-3 text-left">Ad</th>
+                                    <th className="px-6 py-3 text-left">Üst Departman</th>
+                                    <th className="px-6 py-3 text-left">İşlemler</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {items.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="text-center text-gray-500 py-10">
+                                            <h3 className="text-lg font-medium">Kayıt yok</h3>
+                                        </td>
+                                    </tr>
+                                )}
+                                {items.map((d) => (
+                                    <tr
+                                        key={d.id}
+                                        className="hover:bg-gray-50 transition transform hover:scale-[1.01]"
+                                    >
+                                        <td className="px-6 py-4 font-semibold text-indigo-600 w-20">
+                                            {d.id}
+                                        </td>
+                                        <td className="px-6 py-4 font-medium text-gray-800">
+                                            {d.name}
+                                        </td>
+                                        <td className="px-6 py-4 italic text-gray-500">
+                                            {d.parentDepartmentId ?? "-"}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => openEdit(d)}
+                                                    className="px-4 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-yellow-400 to-yellow-300 text-gray-800 hover:shadow-lg transition"
+                                                >
+                                                    Güncelle
+                                                </button>
+                                                <button
+                                                    onClick={() => setConfirmDeleteId(d.id)}
+                                                    className="px-4 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-red-500 to-red-400 text-white hover:shadow-lg transition"
+                                                >
+                                                    Sil
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
             </div>
 
-            {loading ? (
-                <p>Yükleniyor…</p>
-            ) : (
-                <table width="100%" cellPadding={8} style={{ borderCollapse: "collapse" }}>
-                    <thead>
-                    <tr style={{ textAlign: "left", borderBottom: "1px solid #ddd" }}>
-                        <th>ID</th>
-                        <th>Ad</th>
-                        <th>Üst Departman</th>
-                        <th>İşlemler</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {items.map((d) => (
-                        <tr key={d.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                            <td>{d.id}</td>
-                            <td>{d.name}</td>
-                            <td>{d.parentDepartmentId ?? "-"}</td>
-                            <td>
-                                <button onClick={() => openEdit(d)} style={{ marginRight: 8 }}>
-                                    Güncelle
-                                </button>
-                                <button onClick={() => remove(d.id)}>Sil</button>
-                            </td>
-                        </tr>
-                    ))}
-                    {items.length === 0 && (
-                        <tr>
-                            <td colSpan={4} style={{ padding: 16, textAlign: "center", color: "#777" }}>
-                                Kayıt yok
-                            </td>
-                        </tr>
-                    )}
-                    </tbody>
-                </table>
-            )}
-
+            {/* Modal: Create / Update */}
             {showForm && (
                 <div
-                    style={{
-                        position: "fixed",
-                        inset: 0,
-                        background: "rgba(0,0,0,0.35)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: 16,
-                    }}
+                    className="fixed inset-0 flex items-center justify-center bg-black/50"
                     onClick={closeForm}
                 >
                     <div
-                        style={{ background: "#fff", padding: 20, borderRadius: 8, minWidth: 360 }}
+                        className="bg-white p-6 rounded-xl shadow-xl w-96"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <h3 style={{ marginTop: 0 }}>{isEdit ? "Departman Güncelle" : "Yeni Departman"}</h3>
-                        <form onSubmit={submitForm}>
-                            <div style={{ marginBottom: 12 }}>
-                                <label>
-                                    Ad<br />
-                                    <input
-                                        type="text"
-                                        value={form.name}
-                                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                        required
-                                    />
-                                </label>
+                        <h3 className="text-xl font-semibold mb-4">
+                            {isEdit ? "Departman Güncelle" : "Yeni Departman"}
+                        </h3>
+                        <form onSubmit={submitForm} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Ad</label>
+                                <input
+                                    type="text"
+                                    value={form.name}
+                                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                    required
+                                    className="w-full border rounded px-3 py-2"
+                                />
                             </div>
-                            <div style={{ marginBottom: 12 }}>
-                                <label>
-                                    Üst Departman ID (opsiyonel)<br />
-                                    <input
-                                        type="number"
-                                        value={form.parentDepartmentId ?? ""}
-                                        onChange={(e) =>
-                                            setForm({
-                                                ...form,
-                                                parentDepartmentId: e.target.value === "" ? null : Number(e.target.value),
-                                            })
-                                        }
-                                    />
+                            <div>
+                                <label className="block text-sm font-medium mb-1">
+                                    Üst Departman ID (opsiyonel)
                                 </label>
+                                <input
+                                    type="number"
+                                    value={form.parentDepartmentId ?? ""}
+                                    onChange={(e) =>
+                                        setForm({
+                                            ...form,
+                                            parentDepartmentId:
+                                                e.target.value === "" ? null : Number(e.target.value),
+                                        })
+                                    }
+                                    className="w-full border rounded px-3 py-2"
+                                />
                             </div>
 
-                            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                                <button type="button" onClick={closeForm}>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={closeForm}
+                                    className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                                >
                                     İptal
                                 </button>
-                                <button type="submit">{isEdit ? "Kaydet" : "Oluştur"}</button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                                >
+                                    {isEdit ? "Kaydet" : "Oluştur"}
+                                </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal: Delete Confirm */}
+            {confirmDeleteId !== null && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black/40">
+                    <div className="bg-white p-6 rounded-xl shadow-lg w-80">
+                        <p className="mb-4">Bu departmanı silmek istediğinize emin misiniz?</p>
+                        <div className="flex justify-end space-x-4">
+                            <button
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                            >
+                                Hayır
+                            </button>
+                            <button
+                                onClick={() => deleteDepartment(confirmDeleteId)}
+                                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                            >
+                                Evet
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

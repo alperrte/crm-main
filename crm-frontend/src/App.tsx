@@ -1,4 +1,3 @@
-// src/App.tsx
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
@@ -6,6 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import AdminPanel from "./admin/AdminPanel";
 import DepartmentPage from "./pages/DepartmentPage";
+import RolesPage from "./pages/RolesPage";   // ✅ Rol sayfası import edildi
 import PublicTicketForm from "./pages/PublicTicketForm";
 
 // Basit koruma: token yoksa login'e at
@@ -39,6 +39,14 @@ function App() {
                     element={
                         <RequireAuth>
                             <DepartmentPage />
+                        </RequireAuth>
+                    }
+                />
+                <Route
+                    path="/admin/roles"   // ✅ Rol Kontrolleri route eklendi
+                    element={
+                        <RequireAuth>
+                            <RolesPage />
                         </RequireAuth>
                     }
                 />
