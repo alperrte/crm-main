@@ -1,98 +1,106 @@
+// service/impl/TicketServiceImpl.java
 package com.example.ticket_service.service.impl;
 
-import com.example.ticket_service.dto.request.TicketRequest;
+import com.example.ticket_service.dto.request.PublicTicketRequest;
 import com.example.ticket_service.dto.response.TicketResponse;
-import com.example.ticket_service.entity.TicketEntity;
-import com.example.ticket_service.repository.TicketRepository;
+import com.example.ticket_service.entity.*;
+import com.example.ticket_service.repository.*;
 import com.example.ticket_service.service.TicketService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class TicketImpl implements TicketService {
 
     private final TicketRepository ticketRepository;
+    private final CustomerRepository customerRepository;
+    private final CategoryRepository categoryRepository;
+    private final TicketAssignmentRepository assignmentRepository;
 
-    @Transactional
     @Override
-    public TicketResponse createTicket(TicketRequest req) {
-        validateRequest(req);
+    @Transactional
+    public TicketResponse createPublicTicket(PublicTicketRequest req) {
+        // 1) Müşteriyi email ile bul/yoksa oluştur-güncelle
+        CustomerEntity customer = customerRepository.findByEmail(req.email())
+                .map(c -> {
+                    // isim/telefon güncelleme (isteğe bağlı)
+                    c.setName(req.firstName());
+                    c.setSurname(req.lastName());
+                    c.setPhone(req.phone());
+                    return c;
+                })
+                .orElseGet(() -> CustomerEntity.builder()
+                        .email(req.email())
+                        .name(req.firstName())
+                        .surname(req.lastName())
+                        .phone(req.phone())
+                        .build());
 
-        boolean isEmployee = determineEmployeeFlag(req);
+        customer = customerRepository.save(customer);
 
-        TicketEntity entity = TicketEntity.builder()
-                .issue(req.getIssue())
-                .priority(req.getPriority())
+        // 2) Ticket oluştur
+        TicketEntity ticket = TicketEntity.builder()
+                .issue(req.issue())
+                .priority(req.priority())
                 .active(true)
                 .createdDate(LocalDateTime.now())
-                .employee(isEmployee)
-                .creatorCustomerId(req.getCreatorCustomerId())
-                .creatorPersonId(req.getCreatorPersonId())
+                .employee(false) // public
+                .creatorCustomer(customer)
+                .build();
+        ticket = ticketRepository.save(ticket);
+
+        // 3) Kategoriye göre assignment aç
+        CategoryEntity category = categoryRepository.findById(req.categoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Kategori bulunamadı"));
+
+        TicketAssignmentEntity ta = TicketAssignmentEntity.builder()
+                .ticket(ticket)
+                .assignedDate(LocalDateTime.now())
+                .status("OPEN")
                 .build();
 
-        TicketEntity saved = ticketRepository.save(entity);
+        if (category.getTargetDepartmentId() != null) {
+            ta.setInPool(false);
+            ta.setDepartmentId(category.getTargetDepartmentId());
+        } else {
+            ta.setInPool(true); // genel havuz
+        }
+        assignmentRepository.save(ta);
 
-        return mapToResponse(saved);
+        // 4) Response
+        return TicketResponse.builder()
+                .id(ticket.getId())
+                .customerEmail(customer.getEmail())
+                .customerName(customer.getName())
+                .customerSurname(customer.getSurname())
+                .customerPhone(customer.getPhone())
+                .issue(ticket.getIssue())
+                .priority(ticket.getPriority())
+                .active(ticket.getActive())
+                .createdDate(ticket.getCreatedDate())
+                .build();
     }
 
     @Override
-    public List<TicketResponse> getAllTickets() {
-        return ticketRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    // --- Yardımcı metodlar ---
-
-    private void validateRequest(TicketRequest req) {
-        if (req.getIssue() == null || req.getIssue().isBlank()) {
-            throw new IllegalArgumentException("issue zorunludur");
-        }
-        if (req.getPriority() == null || req.getPriority().isBlank()) {
-            throw new IllegalArgumentException("priority zorunludur");
-        }
-
-        boolean hasCustomer = req.getCreatorCustomerId() != null;
-        boolean hasPerson = req.getCreatorPersonId() != null;
-        if (hasCustomer == hasPerson) {
-            throw new IllegalArgumentException("creatorCustomerId veya creatorPersonId değerlerinden yalnızca birini vermelisiniz");
-        }
-    }
-
-    private boolean determineEmployeeFlag(TicketRequest req) {
-        boolean hasCustomer = req.getCreatorCustomerId() != null;
-        boolean hasPerson = req.getCreatorPersonId() != null;
-
-        boolean isEmployee = (req.getEmployee() != null)
-                ? req.getEmployee()
-                : hasPerson;
-
-        if (isEmployee && !hasPerson) {
-            throw new IllegalArgumentException("employee=true iken creatorPersonId zorunludur");
-        }
-        if (!isEmployee && !hasCustomer) {
-            throw new IllegalArgumentException("employee=false iken creatorCustomerId zorunludur");
-        }
-        return isEmployee;
-    }
-
-    private TicketResponse mapToResponse(TicketEntity saved) {
-        return TicketResponse.builder()
-                .id(saved.getId())
-                .issue(saved.getIssue())
-                .priority(saved.getPriority())
-                .active(saved.getActive())
-                .createdDate(saved.getCreatedDate())
-                .closedDate(saved.getClosedDate())
-                .employee(saved.getEmployee())
-                .creatorCustomerId(saved.getCreatorCustomerId())
-                .creatorPersonId(saved.getCreatorPersonId())
-                .build();
+    public List<TicketResponse> listAllTickets() {
+        return ticketRepository.findAllByOrderByCreatedDateDesc()
+                .stream()
+                .map(t -> TicketResponse.builder()
+                        .id(t.getId())
+                        .customerEmail(t.getCreatorCustomer() != null ? t.getCreatorCustomer().getEmail() : null)
+                        .customerName(t.getCreatorCustomer() != null ? t.getCreatorCustomer().getName() : null)
+                        .customerSurname(t.getCreatorCustomer() != null ? t.getCreatorCustomer().getSurname() : null)
+                        .customerPhone(t.getCreatorCustomer() != null ? t.getCreatorCustomer().getPhone() : null)
+                        .issue(t.getIssue())
+                        .priority(t.getPriority())
+                        .active(t.getActive())
+                        .createdDate(t.getCreatedDate())
+                        .build())
+                .toList();
     }
 }

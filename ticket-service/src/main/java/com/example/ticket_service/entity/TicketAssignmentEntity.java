@@ -1,31 +1,27 @@
+// entity/TicketAssignmentEntity.java
 package com.example.ticket_service.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
 @Entity
 @Table(name = "ticket_assignments")
-public class TicketAssigmentsEntity {
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class TicketAssignmentEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "assignment_id")
     private Long id;
 
-    @Column(name = "ticket_id", nullable = false)
-    private Long ticketId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ticket_id")
+    private TicketEntity ticket;
 
     @Column(name = "is_in_pool", nullable = false)
-    private Boolean inPool = false;
+    private Boolean inPool;
 
     @Column(name = "department_id")
     private Long departmentId;
@@ -34,11 +30,11 @@ public class TicketAssigmentsEntity {
     private Long personId;
 
     @Column(name = "assigned_date")
-    private LocalDateTime assigned;
+    private LocalDateTime assignedDate;
 
     @Column(name = "completed_date")
-    private LocalDateTime completed;
+    private LocalDateTime completedDate;
 
-    @Column(name = "status", nullable = false)
-    private String status = "OPEN";
+    @Column(name = "status", nullable = false, length = 20)
+    private String status; // OPEN, IN_PROGRESS, DONE
 }

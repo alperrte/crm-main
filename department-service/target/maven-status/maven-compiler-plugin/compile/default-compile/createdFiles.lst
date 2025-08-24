@@ -1,7 +1,6 @@
 com\example\department_service\dto\request\DepartmentRequest$DepartmentRequestBuilder.class
 com\example\department_service\data\repository\DepartmentRepository.class
 com\example\department_service\security\config\WebConfig.class
-com\example\department_service\security\config\WebConfig$1.class
 com\example\department_service\data\entity\DepartmentEntity.class
 com\example\department_service\data\entity\DepartmentEntity$DepartmentEntityBuilder.class
 com\example\department_service\data\service\DepartmentService.class

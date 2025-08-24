@@ -30,11 +30,10 @@ spring:
     table: flyway_schema_history_ticket
     baseline-on-migrate: true
 
-  jwt:
-    secret: ${JWT_SECRET}
-    expiration: ${JWT_EXPIRATION}
-    issuer: ${JWT_ISSUER}
-    refresh-expiration: ${JWT_REFRESH_EXPIRATION}
+jwt:
+  secret: ${JWT_SECRET}
+  issuer: ${JWT_ISSUER:user-service}
+  roles-claim: role   # sabit admin için 'role' claim'i okunacak
 
 # Actuator health/info testleri için
 management:
@@ -45,3 +44,4 @@ management:
   endpoint:
     health:
       show-details: when_authorized
+
