@@ -16,22 +16,18 @@ const RolesPage: React.FC = () => {
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
     const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
 
-    // 🔹 Kontroller menüsü için state
     const [menuOpen, setMenuOpen] = useState(false);
-
-    // 🔹 Buton referanslarını map olarak tutuyoruz
     const buttonRefs = useRef<Record<number, HTMLButtonElement | null>>({});
 
-    // Kullanıcıları getir
+    // ✅ Kullanıcıları getir
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const res = await api.get("/admin/users", {
-                headers: { Authorization: "Bearer " + localStorage.getItem("token") },
-            });
+            const res = await api.get("/admin/users"); // interceptor zaten token ekliyor
+            console.log("👉 Kullanıcılar:", res.data);
             setUsers(res.data);
         } catch (err) {
-            console.error(err);
+            console.error("❌ Kullanıcılar alınamadı:", err);
         } finally {
             setLoading(false);
         }
@@ -41,39 +37,45 @@ const RolesPage: React.FC = () => {
         fetchUsers();
     }, []);
 
-    // Rol güncelleme
+    // ✅ Rol güncelleme
     const updateRole = async (id: number, role: string) => {
         try {
-            await api.put(
-                `/admin/users/${id}/role?role=${role}`,
-                {},
-                { headers: { Authorization: "Bearer " + localStorage.getItem("token") } }
-            );
+            await api.put(`/admin/users/${id}/role?role=${role}`);
             setUsers((prev) =>
                 prev.map((u) => (u.id === id ? { ...u, role } : u))
             );
         } catch (err) {
-            console.error(err);
+            console.error("❌ Rol güncellenemedi:", err);
         } finally {
             setOpenDropdown(null);
         }
     };
 
-    // Kullanıcı silme
+    // ✅ Person yap
+    const makePerson = async (id: number) => {
+        try {
+            await api.put(`/admin/users/${id}/make-person`);
+            setUsers((prev) =>
+                prev.map((u) => (u.id === id ? { ...u, role: "PERSON" } : u))
+            );
+            setOpenDropdown(null);
+        } catch (err) {
+            console.error("❌ makePerson hatası:", err);
+        }
+    };
+
+    // ✅ Kullanıcı sil
     const deleteUser = async (id: number) => {
         try {
-            await api.delete(`/admin/users/${id}`, {
-                headers: { Authorization: "Bearer " + localStorage.getItem("token") },
-            });
+            await api.delete(`/admin/users/${id}`);
             setUsers((prev) => prev.filter((u) => u.id !== id));
         } catch (err) {
-            console.error(err);
+            console.error("❌ Kullanıcı silinemedi:", err);
         } finally {
             setConfirmDeleteId(null);
         }
     };
 
-    // Badge renkleri
     const roleBadgeClass = (role: string) => {
         switch (role) {
             case "ADMIN":
@@ -87,7 +89,6 @@ const RolesPage: React.FC = () => {
         }
     };
 
-    // Dropdown pozisyonunu hesapla
     const handleDropdownToggle = (id: number) => {
         if (openDropdown === id) {
             setOpenDropdown(null);
@@ -111,7 +112,7 @@ const RolesPage: React.FC = () => {
                         <p className="opacity-90 text-lg">Kullanıcı rollerini yönetin ve düzenleyin</p>
                     </div>
 
-                    {/* 🔹 Kontroller dropdown menüsü */}
+                    {/* Kontroller dropdown */}
                     <div className="relative">
                         <button
                             onClick={() => setMenuOpen(!menuOpen)}
@@ -121,18 +122,9 @@ const RolesPage: React.FC = () => {
                         </button>
                         {menuOpen && (
                             <div className="absolute right-0 mt-2 w-56 bg-white text-gray-800 rounded-lg shadow-lg overflow-hidden z-20">
-                                <Link
-                                    to="/admin"
-                                    className="block px-4 py-2 hover:bg-gray-100"
-                                >
-                                    Admin Panel
-                                </Link>
-                                <a
-                                    href="http://localhost:3000/admin/departments"
-                                    className="block px-4 py-2 hover:bg-gray-100"
-                                >
-                                    Departman Kontrolleri
-                                </a>
+                                <Link to="/admin" className="block px-4 py-2 hover:bg-gray-100">Admin Panel</Link>
+                                <Link to="/admin/departments" className="block px-4 py-2 hover:bg-gray-100">Departman Kontrolleri</Link>
+                                <Link to="/admin/persons" className="block px-4 py-2 hover:bg-gray-100">Person Kontrolleri</Link>
                             </div>
                         )}
                     </div>
@@ -155,27 +147,18 @@ const RolesPage: React.FC = () => {
                             </thead>
                             <tbody>
                             {users.map((u) => (
-                                <tr
-                                    key={u.id}
-                                    className="hover:bg-gray-50 transition transform hover:-translate-y-0.5"
-                                >
+                                <tr key={u.id} className="hover:bg-gray-50 transition transform hover:-translate-y-0.5">
                                     <td className="px-6 py-4">{u.id}</td>
                                     <td className="px-6 py-4">{u.username}</td>
                                     <td className="px-6 py-4">{u.email}</td>
                                     <td className="px-6 py-4">
-                                            <span
-                                                className={`px-4 py-2 rounded-full text-sm font-semibold uppercase ${roleBadgeClass(
-                                                    u.role
-                                                )}`}
-                                            >
-                                                {u.role}
-                                            </span>
+                                        <span className={`px-4 py-2 rounded-full text-sm font-semibold uppercase ${roleBadgeClass(u.role)}`}>
+                                            {u.role}
+                                        </span>
                                     </td>
                                     <td className="px-6 py-4">
                                         <button
-                                            ref={(el) => {
-                                                buttonRefs.current[u.id] = el;
-                                            }}
+                                            ref={(el) => { buttonRefs.current[u.id] = el; }}
                                             onClick={() => handleDropdownToggle(u.id)}
                                             className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-full font-semibold flex items-center gap-2"
                                         >
@@ -186,9 +169,7 @@ const RolesPage: React.FC = () => {
                             ))}
                             {users.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="text-center text-gray-500 py-10">
-                                        Kayıt yok
-                                    </td>
+                                    <td colSpan={5} className="text-center text-gray-500 py-10">Kayıt yok</td>
                                 </tr>
                             )}
                             </tbody>
@@ -203,51 +184,21 @@ const RolesPage: React.FC = () => {
                     className="fixed bg-white rounded-xl shadow-xl z-50 min-w-[200px]"
                     style={{ top: dropdownPos.top + 5, left: dropdownPos.left }}
                 >
-                    <button
-                        onClick={() => updateRole(openDropdown, "ADMIN")}
-                        className="block w-full text-left px-5 py-3 hover:bg-gray-100"
-                    >
-                        Admin Yap
-                    </button>
-                    <button
-                        onClick={() => updateRole(openDropdown, "PERSON")}
-                        className="block w-full text-left px-5 py-3 hover:bg-gray-100"
-                    >
-                        Person Yap
-                    </button>
-                    <button
-                        onClick={() => updateRole(openDropdown, "USER")}
-                        className="block w-full text-left px-5 py-3 hover:bg-gray-100"
-                    >
-                        User Yap
-                    </button>
-                    <button
-                        onClick={() => setConfirmDeleteId(openDropdown)}
-                        className="block w-full text-left px-5 py-3 text-red-600 hover:bg-red-50"
-                    >
-                        Sil
-                    </button>
+                    <button onClick={() => updateRole(openDropdown, "ADMIN")} className="block w-full text-left px-5 py-3 hover:bg-gray-100">Admin Yap</button>
+                    <button onClick={() => makePerson(openDropdown)} className="block w-full text-left px-5 py-3 hover:bg-gray-100">Person Yap</button>
+                    <button onClick={() => updateRole(openDropdown, "USER")} className="block w-full text-left px-5 py-3 hover:bg-gray-100">User Yap</button>
+                    <button onClick={() => setConfirmDeleteId(openDropdown)} className="block w-full text-left px-5 py-3 text-red-600 hover:bg-red-50">Sil</button>
                 </div>
             )}
 
-            {/* Silme Onay Kutusu */}
+            {/* Silme onay kutusu */}
             {confirmDeleteId !== null && (
                 <div className="fixed inset-0 flex items-center justify-center bg-black/40">
                     <div className="bg-white p-6 rounded-xl shadow-lg w-80">
                         <p className="mb-4">Bu kullanıcıyı silmek istediğinize emin misiniz?</p>
                         <div className="flex justify-end space-x-4">
-                            <button
-                                onClick={() => setConfirmDeleteId(null)}
-                                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                            >
-                                Hayır
-                            </button>
-                            <button
-                                onClick={() => deleteUser(confirmDeleteId)}
-                                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                            >
-                                Evet
-                            </button>
+                            <button onClick={() => setConfirmDeleteId(null)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Hayır</button>
+                            <button onClick={() => deleteUser(confirmDeleteId)} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Evet</button>
                         </div>
                     </div>
                 </div>

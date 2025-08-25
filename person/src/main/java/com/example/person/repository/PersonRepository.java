@@ -5,11 +5,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface PersonRepository extends JpaRepository<PersonEntity,Long> {
-    // Department'a göre person listesi
+public interface PersonRepository extends JpaRepository<PersonEntity, Long> {
+
     List<PersonEntity> findByDepartmentId(Long departmentId);
 
-    // Aktif personları listele
     List<PersonEntity> findByActiveTrue();
 
+    // ✅ EKLENDİ: admin tarafında "Departmansız" liste
+    List<PersonEntity> findByActiveTrueAndDepartmentIdIsNull(); // ✅ EKLENDİ
 }

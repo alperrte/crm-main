@@ -14,65 +14,61 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/persons")
+@RequestMapping("/api/persons")
 @RequiredArgsConstructor
 public class PersonController {
 
-    private final PersonService personService; // ✅ Dependency Injection
+    private final PersonService personService;
 
-    // ✅ 1. Tüm personlar (sadece aktifler)
     @GetMapping
     public ResponseEntity<List<PersonResponseDto>> getAllPersons() {
-        List<PersonEntity> persons = personService.getAllPersons();
-
-        List<PersonResponseDto> response = persons.stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok(response);
+        List<PersonResponseDto> out = personService.getAllPersons()
+                .stream().map(this::toResponse).collect(Collectors.toList());
+        return ResponseEntity.ok(out);
     }
 
-    // ✅ 2. Tek person getir
     @GetMapping("/{id}")
     public ResponseEntity<PersonResponseDto> getPersonById(@PathVariable Long id) {
         Optional<PersonEntity> opt = personService.getPersonById(id);
-
         return opt.map(e -> ResponseEntity.ok(toResponse(e)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // ✅ 3. Yeni person oluştur
+    // ✅ user-service buraya POST atar
     @PostMapping
     public ResponseEntity<PersonResponseDto> createPerson(@RequestBody PersonRequestDto req) {
         PersonEntity entity = toEntity(req);
+        entity.setActive(true); // ✅ EKLENDİ
         PersonEntity saved = personService.createPerson(entity);
-
-        return ResponseEntity
-                .created(URI.create("/persons/" + saved.getId()))
+        return ResponseEntity.created(URI.create("/api/persons/" + saved.getId()))
                 .body(toResponse(saved));
     }
 
-    // ✅ 4. Person güncelle
     @PutMapping("/{id}")
-    public ResponseEntity<PersonResponseDto> updatePerson(
-            @PathVariable Long id,
-            @RequestBody PersonRequestDto req) {
-
-        PersonEntity incoming = toEntity(req);
-        Optional<PersonEntity> updated = personService.updatePerson(id, incoming);
-
-        return updated.map(e -> ResponseEntity.ok(toResponse(e)))
+    public ResponseEntity<PersonResponseDto> updatePerson(@PathVariable Long id,
+                                                          @RequestBody PersonRequestDto req) {
+        PersonEntity in = toEntity(req);
+        return personService.updatePerson(id, in)
+                .map(e -> ResponseEntity.ok(toResponse(e)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // ✅ 5. Person sil (soft delete veya hard delete)
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePerson(@PathVariable Long id) {
         personService.deletePerson(id);
         return ResponseEntity.noContent().build();
     }
 
-    // 🔄 Helper: Entity → Response DTO
+    // helpers
+    private PersonEntity toEntity(PersonRequestDto r) {
+        return PersonEntity.builder()
+                .name(r.getName())
+                .surname(r.getSurname())
+                .email(r.getEmail())
+                .phone(r.getPhone())
+                .departmentId(r.getDepartmentId()) // ✅ null olabilir
+                .build();
+    }
     private PersonResponseDto toResponse(PersonEntity e) {
         return PersonResponseDto.builder()
                 .id(e.getId())
@@ -82,18 +78,6 @@ public class PersonController {
                 .phone(e.getPhone())
                 .active(e.getActive())
                 .departmentId(e.getDepartmentId())
-                .build();
-    }
-
-    // 🔄 Helper: Request DTO → Entity
-    private PersonEntity toEntity(PersonRequestDto r) {
-        return PersonEntity.builder()
-                .name(r.getName())
-                .surname(r.getSurname())
-                .email(r.getEmail())
-                .phone(r.getPhone())
-                .departmentId(r.getDepartmentId())
-                .active(true) // yeni kayıt aktif başlar
                 .build();
     }
 }

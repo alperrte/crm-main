@@ -1,11 +1,10 @@
+// src/main/java/com/example/person/service/PersonService.java
 package com.example.person.service;
 
 import com.example.person.entity.PersonEntity;
 
-
 import java.util.List;
 import java.util.Optional;
-
 
 public interface PersonService {
 
@@ -14,4 +13,9 @@ public interface PersonService {
     PersonEntity createPerson(PersonEntity person);
     Optional<PersonEntity> updatePerson(Long id, PersonEntity person);
     void deletePerson(Long id);
+
+    // --- Admin ihtiyacı ---
+    List<PersonEntity> getUnassignedPersons();
+    List<PersonEntity> getPersonsByDepartment(Long departmentId);
+    Optional<PersonEntity> assignDepartment(Long personId, Long departmentId);
 }

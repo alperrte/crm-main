@@ -22,20 +22,30 @@ public class UserEntity {
     private String username;
 
     @Column(name = "email")
-    private String email; // yeni
+    private String email;
 
     @Column(name = "password_hash")
     private String passwordHash;
 
     @Column(name = "role")
-    private String role; // 'ADMIN' | 'USER' (DB tarafı böyle, Spring tarafında ROLE_ prefix mapping yapacağız)
+    private String role;
 
     @Column(name = "person_id")
-    private Long personId; // opsiyonel, şu an register’dan almıyoruz
+    private Long personId;
 
     @Column(name = "refresh_token_hash")
-    private String refreshTokenHash; // refresh token plain (rotate için)
+    private String refreshTokenHash;
 
     @Column(name = "refresh_token_expires_at")
     private LocalDateTime refreshTokenExpires;
+
+    // 🔹 Burayı güncelledik: yeni alanlar
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "surname")
+    private String surname;
+
+    @Column(name = "phone")
+    private String phone;
 }

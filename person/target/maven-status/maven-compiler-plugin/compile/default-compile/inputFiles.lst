@@ -1,10 +1,13 @@
+C:\Users\alper\Desktop\Ana Proje\crm-main\person\src\main\java\com\example\person\controller\AdminController.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\person\src\main\java\com\example\person\controller\PersonController.java
+C:\Users\alper\Desktop\Ana Proje\crm-main\person\src\main\java\com\example\person\dto\request\AssignDepartmentRequest.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\person\src\main\java\com\example\person\dto\request\PersonRequestDto.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\person\src\main\java\com\example\person\dto\response\PersonResponseDto.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\person\src\main\java\com\example\person\entity\PersonEntity.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\person\src\main\java\com\example\person\PersonApplication.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\person\src\main\java\com\example\person\repository\PersonRepository.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\person\src\main\java\com\example\person\security\config\SecurityConfig.java
+C:\Users\alper\Desktop\Ana Proje\crm-main\person\src\main\java\com\example\person\security\config\WebConfig.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\person\src\main\java\com\example\person\security\filter\JwtAuthFilter.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\person\src\main\java\com\example\person\security\jwt\JwtUtil.java
 C:\Users\alper\Desktop\Ana Proje\crm-main\person\src\main\java\com\example\person\service\impl\PersonServiceImpl.java

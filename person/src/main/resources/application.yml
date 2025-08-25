@@ -18,11 +18,10 @@ spring:
         dialect: org.hibernate.dialect.SQLServerDialect
         default_schema: dbo
 
-  jwt:
-    secret: ${JWT_SECRET}
-    expiration: ${JWT_EXPIRATION}
-    issuer: ${JWT_ISSUER}
-    refresh-expiration: ${JWT_REFRESH_EXPIRATION}
+jwt:
+  secret: ${JWT_SECRET}
+  issuer: ${JWT_ISSUER:user-service}
+  roles-claim: role   # sabit admin için 'role' claim'i okunacak
 
   flyway:
     enabled: true

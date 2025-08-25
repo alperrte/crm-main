@@ -108,6 +108,12 @@ const DepartmentsPage: React.FC = () => {
                                     >
                                         Rol Kontrolleri
                                     </a>
+                                    <a
+                                        href="http://localhost:3000/admin/persons"
+                                        className="block px-4 py-2 hover:bg-gray-100"
+                                    >
+                                        Person Kontrolleri
+                                    </a>
                                 </div>
                             )}
                         </div>

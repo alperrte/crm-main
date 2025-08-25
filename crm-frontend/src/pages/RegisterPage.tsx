@@ -1,13 +1,16 @@
 import React, { useState } from "react";
-import userApi from "../api/userApi";
+import { registerUser, RegisterRequest } from "../api/userApi";
 
 const RegisterPage: React.FC = () => {
-    const [form, setForm] = useState({
-        username: "",
+    // 🔹 Burayı güncelledik: name, surname, phone eklendi
+    const [form, setForm] = useState<RegisterRequest>({
+        name: "",
+        surname: "",
         email: "",
+        phone: "",
         password: "",
-        confirmPassword: "",
     });
+    const [confirmPassword, setConfirmPassword] = useState("");
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -16,20 +19,14 @@ const RegisterPage: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (form.password !== form.confirmPassword) {
-            alert("Şifreler eşleşmiyor kontrol ediniz!");
+        if (form.password !== confirmPassword) {
+            alert("Şifreler eşleşmiyor, kontrol ediniz!");
             return;
         }
 
         try {
-            const response = await userApi.post("/api/auth/register", {
-                username: form.username,
-                email: form.email,
-                password: form.password,
-            });
-
-            alert("Kaydınız başarıyla oluşturulmuştur.");
-            console.log(response.data);
+            await registerUser(form);
+            alert("Kaydınız başarıyla oluşturuldu.");
             window.location.href = "/";
         } catch (error: any) {
             alert("Hata! Kayıt oluşturulamadı.");
@@ -51,43 +48,72 @@ const RegisterPage: React.FC = () => {
 
                 <h2 className="text-2xl font-bold mb-4 text-center">Kayıt Ol</h2>
 
+                {/* 🔹 Yeni alanlar */}
                 <input
                     type="text"
-                    name="username"
-                    placeholder="Kullanıcı Adı"
+                    name="name"
+                    placeholder="Ad"
+                    value={form.name}
                     onChange={handleChange}
                     className="w-full mb-3 p-2 border rounded"
+                    required
+                />
+
+                <input
+                    type="text"
+                    name="surname"
+                    placeholder="Soyad"
+                    value={form.surname}
+                    onChange={handleChange}
+                    className="w-full mb-3 p-2 border rounded"
+                    required
                 />
 
                 <input
                     type="email"
                     name="email"
                     placeholder="Email"
+                    value={form.email}
                     onChange={handleChange}
                     className="w-full mb-3 p-2 border rounded"
+                    required
+                />
+
+                <input
+                    type="text"
+                    name="phone"
+                    placeholder="Telefon"
+                    value={form.phone}
+                    onChange={handleChange}
+                    className="w-full mb-3 p-2 border rounded"
+                    required
                 />
 
                 <input
                     type="password"
                     name="password"
                     placeholder="Şifre"
+                    value={form.password}
                     onChange={handleChange}
                     className="w-full mb-3 p-2 border rounded"
+                    required
                 />
 
                 <input
                     type="password"
                     name="confirmPassword"
                     placeholder="Şifre Onay"
-                    onChange={handleChange}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full mb-3 p-2 border rounded"
+                    required
                 />
 
                 <button
                     type="submit"
                     className="w-full bg-green-600 text-white p-2 rounded"
                 >
-                    Kayıt ol
+                    Kayıt Ol
                 </button>
 
                 <div className="flex justify-end mt-3 text-sm text-blue-600">

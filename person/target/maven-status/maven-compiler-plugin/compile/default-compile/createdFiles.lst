@@ -1,10 +1,13 @@
 com\example\person\service\PersonService.class
+com\example\person\dto\request\AssignDepartmentRequest.class
 com\example\person\PersonApplication.class
+com\example\person\security\config\WebConfig.class
 com\example\person\service\impl\PersonServiceImpl.class
 com\example\person\security\jwt\JwtUtil.class
 com\example\person\dto\response\PersonResponseDto.class
 com\example\person\dto\response\PersonResponseDto$PersonResponseDtoBuilder.class
 com\example\person\entity\PersonEntity$PersonEntityBuilder.class
+com\example\person\controller\AdminController.class
 com\example\person\security\config\SecurityConfig.class
 com\example\person\security\filter\JwtAuthFilter.class
 com\example\person\entity\PersonEntity.class
