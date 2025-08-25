@@ -9,6 +9,7 @@ interface User {
     email: string;
     phone: string;
     role: string;
+    authorities?: string[]; // ✅ Yeni: yetkiler
 }
 
 const RolesPage: React.FC = () => {
@@ -134,12 +135,12 @@ const RolesPage: React.FC = () => {
 
     return (
         <div className="min-h-screen p-6 bg-gradient-to-br from-indigo-400 to-purple-600 flex justify-center">
-            <div className="w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div className="w-full max-w-7xl bg-white rounded-2xl shadow-2xl overflow-hidden">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-400 to-cyan-400 text-white p-8 flex justify-between items-center relative">
                     <div className="text-center flex-1">
-                        <h1 className="text-3xl font-light mb-2">Rol Kontrolleri</h1>
-                        <p className="opacity-90 text-lg">Kullanıcı rollerini yönetin ve düzenleyin</p>
+                        <h1 className="text-3xl font-light mb-2">Rol & Yetki Kontrolleri</h1>
+                        <p className="opacity-90 text-lg">Kullanıcı rollerini ve yetkilerini yönetin</p>
                     </div>
 
                     {/* Kontroller dropdown */}
@@ -180,6 +181,7 @@ const RolesPage: React.FC = () => {
                                 <th className="px-6 py-3">Email</th>
                                 <th className="px-6 py-3">Telefon</th>
                                 <th className="px-6 py-3">Rol</th>
+                                <th className="px-6 py-3">Yetkiler</th> {/* ✅ Yeni sütun */}
                                 <th className="px-6 py-3">İşlemler</th>
                             </tr>
                             </thead>
@@ -197,6 +199,22 @@ const RolesPage: React.FC = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
+                                        {u.authorities && u.authorities.length > 0 ? (
+                                            <div className="flex flex-wrap gap-2">
+                                                {u.authorities.map((auth) => (
+                                                    <span
+                                                        key={auth}
+                                                        className="px-2 py-1 rounded-full bg-blue-500 text-white text-xs"
+                                                    >
+                                                        {auth}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-400 italic">Yetki yok</span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4">
                                         <button
                                             ref={(el) => { buttonRefs.current[u.id] = el; }}
                                             onClick={() => handleDropdownToggle(u.id)}
@@ -209,7 +227,7 @@ const RolesPage: React.FC = () => {
                             ))}
                             {users.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="text-center text-gray-500 py-10">Kayıt yok</td>
+                                    <td colSpan={8} className="text-center text-gray-500 py-10">Kayıt yok</td>
                                 </tr>
                             )}
                             </tbody>

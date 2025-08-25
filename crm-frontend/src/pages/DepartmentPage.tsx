@@ -25,6 +25,9 @@ const DepartmentsPage: React.FC = () => {
     // ✅ Silme onay için state
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
+    // ✅ Expand/collapse state
+    const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+
     const fetchAll = async () => {
         setLoading(true);
         try {
@@ -78,6 +81,15 @@ const DepartmentsPage: React.FC = () => {
         }
     };
 
+    // ✅ Departmanları ayırma
+    const mainDepartments = items.filter((d) => !d.parentDepartmentId);
+    const getChildren = (parentId: number) =>
+        items.filter((d) => d.parentDepartmentId === parentId);
+
+    const toggleExpand = (id: number) => {
+        setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+    };
+
     return (
         <div className="min-h-screen p-6 bg-gradient-to-br from-indigo-400 to-purple-600 flex justify-center items-start">
             <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden">
@@ -118,7 +130,7 @@ const DepartmentsPage: React.FC = () => {
                             )}
                         </div>
 
-                        {/* 🔹 Senin mevcut +Oluştur butonun */}
+                        {/* 🔹 +Oluştur butonu */}
                         <button
                             onClick={openCreate}
                             className="flex items-center gap-2 bg-white/20 border-2 border-white/30 px-5 py-2 rounded-full hover:bg-white/30 transition shadow"
@@ -155,44 +167,72 @@ const DepartmentsPage: React.FC = () => {
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {items.length === 0 && (
+                                {mainDepartments.length === 0 && (
                                     <tr>
                                         <td colSpan={4} className="text-center text-gray-500 py-10">
                                             <h3 className="text-lg font-medium">Kayıt yok</h3>
                                         </td>
                                     </tr>
                                 )}
-                                {items.map((d) => (
-                                    <tr
-                                        key={d.id}
-                                        className="hover:bg-gray-50 transition transform hover:scale-[1.01]"
-                                    >
-                                        <td className="px-6 py-4 font-semibold text-indigo-600 w-20">
-                                            {d.id}
-                                        </td>
-                                        <td className="px-6 py-4 font-medium text-gray-800">
-                                            {d.name}
-                                        </td>
-                                        <td className="px-6 py-4 italic text-gray-500">
-                                            {d.parentDepartmentId ?? "-"}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex gap-3">
-                                                <button
-                                                    onClick={() => openEdit(d)}
-                                                    className="px-4 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-yellow-400 to-yellow-300 text-gray-800 hover:shadow-lg transition"
-                                                >
-                                                    Güncelle
-                                                </button>
-                                                <button
-                                                    onClick={() => setConfirmDeleteId(d.id)}
-                                                    className="px-4 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-red-500 to-red-400 text-white hover:shadow-lg transition"
-                                                >
-                                                    Sil
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+
+                                {mainDepartments.map((dept) => (
+                                    <React.Fragment key={dept.id}>
+                                        {/* Ana departman satırı */}
+                                        <tr className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 font-semibold text-indigo-600 w-20">
+                                                {dept.id}
+                                            </td>
+                                            <td
+                                                className="px-6 py-4 font-bold text-gray-900 cursor-pointer"
+                                                onClick={() => toggleExpand(dept.id)}
+                                            >
+                                                {expanded[dept.id] ? "▼ " : "▶ "} {dept.name}
+                                            </td>
+                                            <td className="px-6 py-4 italic text-gray-500">-</td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex gap-3">
+                                                    <button
+                                                        onClick={() => openEdit(dept)}
+                                                        className="px-4 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-yellow-400 to-yellow-300 text-gray-800 hover:shadow-lg transition"
+                                                    >
+                                                        Güncelle
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setConfirmDeleteId(dept.id)}
+                                                        className="px-4 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-red-500 to-red-400 text-white hover:shadow-lg transition"
+                                                    >
+                                                        Sil
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        {/* Alt departmanlar */}
+                                        {expanded[dept.id] &&
+                                            getChildren(dept.id).map((child) => (
+                                                <tr key={child.id} className="bg-gray-50">
+                                                    <td className="px-6 py-4 text-indigo-400">{child.id}</td>
+                                                    <td className="px-6 py-4 pl-10">↳ {child.name}</td>
+                                                    <td className="px-6 py-4">{dept.name}</td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex gap-3">
+                                                            <button
+                                                                onClick={() => openEdit(child)}
+                                                                className="px-4 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-yellow-400 to-yellow-300 text-gray-800 hover:shadow-lg transition"
+                                                            >
+                                                                Güncelle
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setConfirmDeleteId(child.id)}
+                                                                className="px-4 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-red-500 to-red-400 text-white hover:shadow-lg transition"
+                                                            >
+                                                                Sil
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                    </React.Fragment>
                                 ))}
                                 </tbody>
                             </table>
@@ -227,10 +267,9 @@ const DepartmentsPage: React.FC = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-1">
-                                    Üst Departman ID (opsiyonel)
+                                    Üst Departman (boş bırakılırsa ana departman olur)
                                 </label>
-                                <input
-                                    type="number"
+                                <select
                                     value={form.parentDepartmentId ?? ""}
                                     onChange={(e) =>
                                         setForm({
@@ -240,7 +279,14 @@ const DepartmentsPage: React.FC = () => {
                                         })
                                     }
                                     className="w-full border rounded px-3 py-2"
-                                />
+                                >
+                                    <option value="">(Ana Departman Olarak Ekle)</option>
+                                    {mainDepartments.map((d) => (
+                                        <option key={d.id} value={d.id}>
+                                            {d.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="flex justify-end gap-3">
