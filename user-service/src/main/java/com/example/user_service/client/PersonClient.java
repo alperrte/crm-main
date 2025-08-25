@@ -18,16 +18,7 @@ public class PersonClient {
     @Value("${person.service.url}")
     private String personServiceUrl;   // docker-compose: http://person:8082
 
-    /**
-     * user-service içinden person-service'e yeni person kaydı açmak için çağrılır.
-     *
-     * @param name     kullanıcının adı
-     * @param surname  kullanıcının soyadı
-     * @param email    kullanıcının email adresi
-     * @param phone    kullanıcının telefonu
-     * @param jwtToken Admin token (Bearer olmadan)
-     * @return         oluşturulan person kaydının id'si (null olabilir)
-     */
+    // ✅ Yeni Person oluştur
     public Long createPersonFromUser(String name, String surname, String email, String phone, String jwtToken) {
         Map<String, Object> req = new HashMap<>();
         req.put("name", name != null ? name : "");
@@ -44,7 +35,7 @@ public class PersonClient {
 
         try {
             ResponseEntity<Map> response = restTemplate.postForEntity(
-                    personServiceUrl + "/api/persons",  // 👈 artık localhost değil, env’den geliyor
+                    personServiceUrl + "/api/persons",
                     entity,
                     Map.class
             );
@@ -56,9 +47,34 @@ public class PersonClient {
                 }
             }
         } catch (Exception e) {
-            log.error("❌ PersonService çağrısı hata verdi", e);
+            log.error("❌ PersonService çağrısı (create) hata verdi", e);
         }
 
         return null;
+    }
+
+    // ✅ Var olan Person sil
+    public void deletePerson(Long personId, String jwtToken) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(jwtToken);
+
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<Void> response = restTemplate.exchange(
+                    personServiceUrl + "/api/persons/" + personId,
+                    HttpMethod.DELETE,
+                    entity,
+                    Void.class
+            );
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("✅ Person {} başarıyla silindi", personId);
+            } else {
+                log.warn("⚠️ Person {} silinemedi, status: {}", personId, response.getStatusCode());
+            }
+        } catch (Exception e) {
+            log.error("❌ PersonService çağrısı (delete) hata verdi, id=" + personId, e);
+        }
     }
 }

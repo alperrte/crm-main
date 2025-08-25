@@ -107,7 +107,7 @@ services:
       JWT_EXPIRATION: ${JWT_EXPIRATION}
       JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION}
       JWT_ISSUER: ${JWT_ISSUER}
-      PERSON_SERVICE_URL: http://person:8082   # 👈 Burayı ekledik Bunu ekledikten sonra person internal 500 error ortadan kalktı. 
+      PERSON_SERVICE_URL: http://person:8082   # 👈 Burayı ekledik Bunu ekledikten sonra person internal 500 error ortadan kalktı.
     ports:
       - "${USER_SERVER_PORT:-8083}:${USER_SERVER_PORT:-8083}"
     depends_on:

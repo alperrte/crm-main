@@ -4,8 +4,10 @@ import { Link } from "react-router-dom";
 
 interface User {
     id: number;
-    username: string;
+    name: string;
+    surname: string;
     email: string;
+    phone: string;
     role: string;
 }
 
@@ -18,6 +20,16 @@ const RolesPage: React.FC = () => {
 
     const [menuOpen, setMenuOpen] = useState(false);
     const buttonRefs = useRef<Record<number, HTMLButtonElement | null>>({});
+
+    // ✅ Yeni kullanıcı oluşturma modal state
+    const [createModalOpen, setCreateModalOpen] = useState(false);
+    const [newUser, setNewUser] = useState({
+        name: "",
+        surname: "",
+        email: "",
+        phone: "",
+        password: "",
+    });
 
     // ✅ Kullanıcıları getir
     const fetchUsers = async () => {
@@ -76,6 +88,24 @@ const RolesPage: React.FC = () => {
         }
     };
 
+    // ✅ Yeni kullanıcı oluştur
+    const createUser = async () => {
+        try {
+            const res = await api.post("/admin/users", newUser);
+            setUsers((prev) => [...prev, res.data]);
+            setCreateModalOpen(false);
+            setNewUser({
+                name: "",
+                surname: "",
+                email: "",
+                phone: "",
+                password: "",
+            });
+        } catch (err) {
+            console.error("❌ Yeni kullanıcı eklenemedi:", err);
+        }
+    };
+
     const roleBadgeClass = (role: string) => {
         switch (role) {
             case "ADMIN":
@@ -113,7 +143,13 @@ const RolesPage: React.FC = () => {
                     </div>
 
                     {/* Kontroller dropdown */}
-                    <div className="relative">
+                    <div className="relative flex gap-4 items-center">
+                        <button
+                            onClick={() => setCreateModalOpen(true)}
+                            className="px-5 py-2 rounded-full bg-white/20 border border-white/30 hover:bg-white/30 transition shadow"
+                        >
+                            + Kullanıcı Oluştur
+                        </button>
                         <button
                             onClick={() => setMenuOpen(!menuOpen)}
                             className="px-5 py-2 rounded-full bg-white/20 border border-white/30 hover:bg-white/30 transition shadow"
@@ -139,8 +175,10 @@ const RolesPage: React.FC = () => {
                             <thead>
                             <tr className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-left text-sm tracking-wide">
                                 <th className="px-6 py-3">ID</th>
-                                <th className="px-6 py-3">Kullanıcı Adı</th>
+                                <th className="px-6 py-3">Ad</th>
+                                <th className="px-6 py-3">Soyad</th>
                                 <th className="px-6 py-3">Email</th>
+                                <th className="px-6 py-3">Telefon</th>
                                 <th className="px-6 py-3">Rol</th>
                                 <th className="px-6 py-3">İşlemler</th>
                             </tr>
@@ -149,8 +187,10 @@ const RolesPage: React.FC = () => {
                             {users.map((u) => (
                                 <tr key={u.id} className="hover:bg-gray-50 transition transform hover:-translate-y-0.5">
                                     <td className="px-6 py-4">{u.id}</td>
-                                    <td className="px-6 py-4">{u.username}</td>
+                                    <td className="px-6 py-4">{u.name}</td>
+                                    <td className="px-6 py-4">{u.surname}</td>
                                     <td className="px-6 py-4">{u.email}</td>
+                                    <td className="px-6 py-4">{u.phone}</td>
                                     <td className="px-6 py-4">
                                         <span className={`px-4 py-2 rounded-full text-sm font-semibold uppercase ${roleBadgeClass(u.role)}`}>
                                             {u.role}
@@ -169,7 +209,7 @@ const RolesPage: React.FC = () => {
                             ))}
                             {users.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="text-center text-gray-500 py-10">Kayıt yok</td>
+                                    <td colSpan={7} className="text-center text-gray-500 py-10">Kayıt yok</td>
                                 </tr>
                             )}
                             </tbody>
@@ -199,6 +239,41 @@ const RolesPage: React.FC = () => {
                         <div className="flex justify-end space-x-4">
                             <button onClick={() => setConfirmDeleteId(null)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Hayır</button>
                             <button onClick={() => deleteUser(confirmDeleteId)} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Evet</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Yeni kullanıcı oluştur modal */}
+            {createModalOpen && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black/40">
+                    <div className="bg-white p-6 rounded-xl shadow-lg w-[400px]">
+                        <h2 className="text-xl font-semibold mb-4">Yeni Kullanıcı Oluştur</h2>
+                        <div className="space-y-3">
+                            <input type="text" placeholder="Ad"
+                                   className="w-full border px-3 py-2 rounded"
+                                   value={newUser.name}
+                                   onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}/>
+                            <input type="text" placeholder="Soyad"
+                                   className="w-full border px-3 py-2 rounded"
+                                   value={newUser.surname}
+                                   onChange={(e) => setNewUser({ ...newUser, surname: e.target.value })}/>
+                            <input type="email" placeholder="Email"
+                                   className="w-full border px-3 py-2 rounded"
+                                   value={newUser.email}
+                                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}/>
+                            <input type="text" placeholder="Telefon"
+                                   className="w-full border px-3 py-2 rounded"
+                                   value={newUser.phone}
+                                   onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}/>
+                            <input type="password" placeholder="Şifre"
+                                   className="w-full border px-3 py-2 rounded"
+                                   value={newUser.password}
+                                   onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}/>
+                        </div>
+                        <div className="flex justify-end space-x-4 mt-4">
+                            <button onClick={() => setCreateModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">İptal</button>
+                            <button onClick={createUser} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Oluştur</button>
                         </div>
                     </div>
                 </div>
