@@ -17,7 +17,7 @@ import java.util.Map;
 /**
  * JWT üretim / doğrulama yardımcı sınıfı.
  * - HS256 imza
- * - subject: username
+ * - subject: email
  * - claim'ler: userId, role, personId
  */
 @Component
@@ -58,7 +58,7 @@ public class JwtUtil {
 
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(user.getUsername())
+                .setSubject(user.getEmail()) // ✅ artık subject = email
                 .setIssuer(issuer)
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plusSeconds(accessTtlSeconds)))
@@ -71,7 +71,7 @@ public class JwtUtil {
         Instant now = Instant.now();
         return Jwts.builder()
                 .setClaims(Map.of("type", "refresh"))
-                .setSubject(user.getUsername())
+                .setSubject(user.getEmail()) // ✅ artık subject = email
                 .setIssuer(issuer)
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plusSeconds(refreshTtlSeconds)))
@@ -94,8 +94,8 @@ public class JwtUtil {
         return !isTokenValid(token);
     }
 
-    /** Token'dan username bilgisini döndürür */
-    public String extractUsername(String token) {
+    /** Token'dan email bilgisini döndürür */
+    public String extractEmail(String token) {
         return getAllClaims(token).getSubject();
     }
 

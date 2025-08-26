@@ -53,7 +53,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String username = jwtUtil.extractUsername(token);
+        // ✅ Artık subject = email
+        String email = jwtUtil.extractEmail(token);
         String role = jwtUtil.extractRole(token);
 
         // ❌ Rol yoksa login olmasın
@@ -66,7 +67,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 List.of(new SimpleGrantedAuthority("ROLE_" + role));
 
         var authentication =
-                new UsernamePasswordAuthenticationToken(username, null, authorities);
+                new UsernamePasswordAuthenticationToken(email, null, authorities);
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         filterChain.doFilter(request, response);

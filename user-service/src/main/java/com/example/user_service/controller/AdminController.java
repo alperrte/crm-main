@@ -5,12 +5,15 @@ import com.example.user_service.entity.UserEntity;
 import com.example.user_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/users")
@@ -25,9 +28,8 @@ public class AdminController {
 
     // ✅ TÜM kullanıcıları listele
     @GetMapping
-    public ResponseEntity<?> getAllUsers() {
-        List<UserEntity> users = userRepository.findAll();
-        return ResponseEntity.ok(users);
+    public ResponseEntity<List<UserEntity>> getAllUsers() {
+        return ResponseEntity.ok(userRepository.findAll());
     }
 
     // ✅ Tek kullanıcı detayını getir
@@ -39,60 +41,66 @@ public class AdminController {
                         .body(Map.of("error", "User not found")));
     }
 
+    // ✅ Person’dan User oluştur (Kullanıcı Yap)
+    @PostMapping("/from-person/{personId}")
+    public ResponseEntity<?> createUserFromPerson(@PathVariable Long personId,
+                                                  @RequestBody Map<String, String> payload,
+                                                  @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        try {
+            String token = (authHeader != null) ? authHeader.replace("Bearer ", "") : null;
+
+            Map<String, Object> person = personClient.getPersonById(personId, token);
+
+            if (person == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Person not found"));
+            }
+
+            String email = (String) person.get("email");
+            if (email == null || userRepository.existsByEmail(email)) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Email zaten kullanıcıya ait"));
+            }
+
+            String rawPassword = payload.get("password");
+            if (rawPassword == null || rawPassword.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Password zorunlu"));
+            }
+
+            UserEntity user = UserEntity.builder()
+                    .personId(person.get("id") != null ? Long.valueOf(person.get("id").toString()) : null)
+                    .name((String) person.get("name"))
+                    .surname((String) person.get("surname"))
+                    .email(email)
+                    .phone((String) person.get("phone"))
+                    .passwordHash(passwordEncoder.encode(rawPassword))
+                    .role("USER") // ✅ başlangıç rolü
+                    .build();
+
+            userRepository.save(user);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(user);
+
+        } catch (Exception e) {
+            log.error("❌ Person’dan user oluşturulamadı: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .body(Map.of("error", "PersonService hatası", "details", e.getMessage()));
+        }
+    }
+
     // ✅ Rol güncelleme
     @PutMapping("/{id}/role")
-    public ResponseEntity<?> updateUserRole(@PathVariable Long id,
-                                            @RequestParam("role") String role,
-                                            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        // normalize
-        String normalized = role.toUpperCase();
-        final String finalRole = normalized.equals("YETKILI ÇALIŞAN") ? "PERSON" : normalized;
-
+    public ResponseEntity<?> updateUserRole(@PathVariable Long id, @RequestParam("role") String role) {
         return userRepository.findById(id)
                 .map(user -> {
-                    user.setRole(finalRole);
-
-                    // Sadece PERSON için person-service çağrısı yapılır
-                    if (finalRole.equals("PERSON")) {
-                        try {
-                            String token = (authHeader != null) ? authHeader.replace("Bearer ", "") : null;
-
-                            Long personId = personClient.createPersonFromUser(
-                                    user.getName(),
-                                    user.getSurname(),
-                                    user.getEmail(),
-                                    user.getPhone(),
-                                    null,   // departmanId başta null
-                                    token
-                            );
-
-                            if (personId == null) {
-                                log.warn("⚠️ Person oluşturulamadı, user={} email={}", user.getId(), user.getEmail());
-                                return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                                        .body(Map.of("error", "PersonService kaydı oluşturulamadı"));
-                            }
-
-                            user.setPersonId(personId);
-
-                        } catch (Exception e) {
-                            log.error("❌ PersonService çağrısı başarısız: {}", e.getMessage());
-                            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                                    .body(Map.of("error", "PersonService hatası", "details", e.getMessage()));
-                        }
+                    String normalized = role.toUpperCase();
+                    if (!List.of("USER", "PERSON", "ADMIN").contains(normalized)) {
+                        return ResponseEntity.badRequest().body(Map.of("error", "Geçersiz rol"));
                     }
-
-                    // USER ve ADMIN → sadece User tablosuna yazılır
+                    user.setRole(normalized);
                     userRepository.save(user);
-
-                    // ✅ Null değerleri güvenli şekilde döndürmek için HashMap kullanalım
-                    Map<String, Object> response = new HashMap<>();
-                    response.put("message", "Rol güncellendi");
-                    response.put("role", finalRole);
-                    if (user.getPersonId() != null) {
-                        response.put("personId", user.getPersonId());
-                    }
-
-                    return ResponseEntity.ok(response);
+                    Map<String, Object> resp = new HashMap<>();
+                    resp.put("message", "Rol güncellendi");
+                    resp.put("role", user.getRole());
+                    return ResponseEntity.ok(resp);
                 })
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("error", "User not found")));
@@ -102,68 +110,9 @@ public class AdminController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         return userRepository.findById(id)
-                .<ResponseEntity<?>>map(user -> {
+                .map(u -> {
                     userRepository.deleteById(id);
                     return ResponseEntity.noContent().build();
-                })
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "User not found")));
-    }
-
-    // ✅ Kullanıcı oluştur
-    @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody Map<String, Object> payload) {
-        String email = (String) payload.get("email");
-        String password = (String) payload.get("password");
-        String name = (String) payload.getOrDefault("name", "-");
-        String surname = (String) payload.getOrDefault("surname", "-");
-        String phone = (String) payload.getOrDefault("phone", "-");
-
-        if (email == null || password == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "email ve password zorunlu"));
-        }
-
-        if (userRepository.existsByEmail(email)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Email zaten kayıtlı"));
-        }
-
-        UserEntity newUser = UserEntity.builder()
-                .username(email)
-                .email(email)
-                .passwordHash(passwordEncoder.encode(password))
-                .name(name)
-                .surname(surname)
-                .phone(phone)
-                .role(null) // rol başta boş olacak
-                .build();
-
-        userRepository.save(newUser);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(newUser);
-    }
-
-    // ✅ Kullanıcı güncelleme (frontend edit için gerekli)
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> payload) {
-        return userRepository.findById(id)
-                .map(user -> {
-                    if (payload.containsKey("name")) user.setName((String) payload.get("name"));
-                    if (payload.containsKey("surname")) user.setSurname((String) payload.get("surname"));
-                    if (payload.containsKey("email")) user.setEmail((String) payload.get("email"));
-                    if (payload.containsKey("phone")) user.setPhone((String) payload.get("phone"));
-                    if (payload.containsKey("password") && payload.get("password") != null) {
-                        String rawPassword = (String) payload.get("password");
-                        if (!rawPassword.isBlank()) {
-                            user.setPasswordHash(passwordEncoder.encode(rawPassword));
-                        }
-                    }
-                    userRepository.save(user);
-
-                    Map<String, Object> response = new HashMap<>();
-                    response.put("message", "Kullanıcı güncellendi");
-                    response.put("user", user);
-
-                    return ResponseEntity.ok(response);
                 })
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("error", "User not found")));

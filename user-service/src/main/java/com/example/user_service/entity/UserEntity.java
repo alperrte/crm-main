@@ -18,8 +18,7 @@ public class UserEntity {
     @Column(name="user_id")
     private Long id;
 
-    @Column(name = "user_name")
-    private String username;
+
 
     @Column(name = "email")
     private String email;

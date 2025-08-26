@@ -34,7 +34,6 @@ public class AuthServiceImpl implements AuthService {
 
         UserEntity user = UserEntity.builder()
                 .email(request.email())
-                .username(request.email())
                 .name(request.name())
                 .surname(request.surname())
                 .phone(request.phone())
@@ -57,7 +56,6 @@ public class AuthServiceImpl implements AuthService {
 
         UserEntity user = UserEntity.builder()
                 .email(request.email())
-                .username(request.email())
                 .name(request.name())
                 .surname(request.surname())
                 .phone(request.phone())
@@ -80,7 +78,6 @@ public class AuthServiceImpl implements AuthService {
 
         UserEntity user = UserEntity.builder()
                 .email(request.email())
-                .username(request.email())
                 .name(request.name())
                 .surname(request.surname())
                 .phone(request.phone())
@@ -88,7 +85,6 @@ public class AuthServiceImpl implements AuthService {
                 .role("PERSON")
                 .build();
 
-        // Burada user kaydediliyor
         userRepository.save(user);
 
         // Eğer person-service çağrısı yapılıyorsa personId user'a set edilmeli
@@ -120,7 +116,7 @@ public class AuthServiceImpl implements AuthService {
         if (jwtUtil.isTokenInvalid(token))
             throw new IllegalArgumentException("Geçersiz veya süresi geçmiş refresh token");
 
-        String email = jwtUtil.extractUsername(token);
+        String email = jwtUtil.extractEmail(token);
 
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Kullanıcı bulunamadı"));

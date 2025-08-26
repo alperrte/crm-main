@@ -1,6 +1,6 @@
 CREATE TABLE users(
                       user_id BIGINT IDENTITY(1,1) PRIMARY KEY,
-                      user_name NVARCHAR(255) NOT NULL,
+
                       password_hash NVARCHAR(255) NOT NULL,
                       refresh_token_hash NVARCHAR(255),
                       refresh_token_expires_at DATETIME2,

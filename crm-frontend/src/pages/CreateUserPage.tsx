@@ -1,55 +1,43 @@
 // src/pages/CreateUserPage.tsx
 import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import api from "../api/userApi";
+import api from "../api/userApi"; // user-service için
+import personApi, { Person } from "../api/personApi"; // person-service için
 import departmentApi, { Department } from "../api/departmentApi";
 
-interface User {
-    id: number;
-    name: string;
-    surname: string;
-    email: string;
-    phone: string;
-    role: string | null;
-    departmentId?: number | null;   // ✅ eklendi
-    departmentName?: string | null;
-}
-
 const CreateUserPage: React.FC = () => {
-    const [users, setUsers] = useState<User[]>([]);
+    const [persons, setPersons] = useState<Person[]>([]);
     const [loading, setLoading] = useState(false);
     const [departments, setDepartments] = useState<Department[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
-    const [passwordModalOpen, setPasswordModalOpen] = useState(false);
-    const [confirmUserId, setConfirmUserId] = useState<number | null>(null);
+    const [confirmPersonId, setConfirmPersonId] = useState<number | null>(null);
     const [menuOpen, setMenuOpen] = useState(false);
+
     const [form, setForm] = useState({
         name: "",
         surname: "",
         email: "",
         phone: "",
-        password: "",
-        departmentId: "",
+        departmentId: "", // string tutuyoruz
     });
-    const [editForm, setEditForm] = useState<User | null>(null);
-    const [passwordForm, setPasswordForm] = useState({ id: 0, password: "" });
+    const [editForm, setEditForm] = useState<Person | null>(null);
+
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
     const buttonRefs = useRef<Record<number, HTMLButtonElement | null>>({});
 
     useEffect(() => {
-        fetchUsers();
-        loadDepartments();
+        void fetchPersons();
+        void loadDepartments();
     }, []);
 
-    const fetchUsers = async () => {
+    const fetchPersons = async () => {
         setLoading(true);
         try {
-            const res = await api.get("/admin/users");
-            const noRoleUsers = res.data.filter((u: User) => !u.role);
-            setUsers(noRoleUsers);
+            const res = await personApi.get("/api/persons");
+            setPersons(res.data);
         } catch (err) {
-            console.error("❌ Kullanıcılar alınamadı:", err);
+            console.error("❌ Kişiler alınamadı:", err);
         } finally {
             setLoading(false);
         }
@@ -64,48 +52,47 @@ const CreateUserPage: React.FC = () => {
         }
     };
 
+    // ✅ Yeni kişi kaydı
     const handleSubmit = async () => {
         try {
-            await api.post("/admin/users", form);
-            setForm({ name: "", surname: "", email: "", phone: "", password: "", departmentId: "" });
+            await personApi.post("/api/persons", {
+                name: form.name,
+                surname: form.surname,
+                email: form.email,
+                phone: form.phone,
+                departmentId: form.departmentId ? Number(form.departmentId) : null,
+            });
+            setForm({ name: "", surname: "", email: "", phone: "", departmentId: "" });
             setModalOpen(false);
-            fetchUsers();
+            void fetchPersons();
         } catch (err) {
             console.error("❌ Yeni kişi eklenemedi:", err);
         }
     };
 
-    const makeUser = async (id: number) => {
+    // ✅ Kişiyi kullanıcı yap
+    const makeUser = async (personId: number) => {
         try {
-            await api.put(`/admin/users/${id}/role?role=USER`);
-            setConfirmUserId(null);
-            fetchUsers();
+            const password = prompt("Yeni kullanıcı için bir parola girin:");
+            if (!password) return;
+
+            await api.post(`/admin/users/from-person/${personId}`, { password });
+            setConfirmPersonId(null);
+            void fetchPersons();
         } catch (err) {
-            console.error("❌ Kullanıcı rolü atanamadı:", err);
+            console.error("❌ Kullanıcı oluşturulamadı:", err);
         }
     };
 
     const handleUpdate = async () => {
         if (!editForm) return;
         try {
-            await api.put(`/admin/users/${editForm.id}`, editForm);
+            await personApi.put(`/api/persons/${editForm.id}`, editForm);
             setEditModalOpen(false);
             setEditForm(null);
-            fetchUsers();
+            void fetchPersons();
         } catch (err) {
-            console.error("❌ Kullanıcı güncellenemedi:", err);
-        }
-    };
-
-    const handlePasswordUpdate = async () => {
-        if (!passwordForm.id || !passwordForm.password) return;
-        try {
-            await api.put(`/admin/users/${passwordForm.id}`, { password: passwordForm.password });
-            setPasswordModalOpen(false);
-            setPasswordForm({ id: 0, password: "" });
-            fetchUsers();
-        } catch (err) {
-            console.error("❌ Parola güncellenemedi:", err);
+            console.error("❌ Kişi güncellenemedi:", err);
         }
     };
 
@@ -159,45 +146,39 @@ const CreateUserPage: React.FC = () => {
                             </tr>
                             </thead>
                             <tbody>
-                            {users.map((u) => (
-                                <tr key={u.id} className="hover:bg-gray-50 relative">
+                            {persons.map((p) => (
+                                <tr key={p.id} className="hover:bg-gray-50 relative">
                                     <td className="px-6 py-4 relative">
                                         <button
-                                            ref={(el) => { buttonRefs.current[u.id] = el; }}
-                                            onClick={() => setOpenDropdown(openDropdown === u.id ? null : u.id)}
+                                            ref={(el) => { buttonRefs.current[p.id] = el; }}
+                                            onClick={() => setOpenDropdown(openDropdown === p.id ? null : p.id)}
                                             className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-full font-semibold"
                                         >
                                             İşlemler ▼
                                         </button>
-                                        {openDropdown === u.id && (
+                                        {openDropdown === p.id && (
                                             <div className="absolute mt-2 bg-white shadow-lg rounded-lg z-50">
                                                 <button
-                                                    onClick={(e) => { e.stopPropagation(); setConfirmUserId(u.id); setOpenDropdown(null); }}
+                                                    onClick={(e) => { e.stopPropagation(); setConfirmPersonId(p.id); setOpenDropdown(null); }}
                                                     className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
                                                 >
                                                     Kullanıcı Yap
                                                 </button>
                                                 <button
-                                                    onClick={(e) => { e.stopPropagation(); setEditForm(u); setEditModalOpen(true); setOpenDropdown(null); }}
+                                                    onClick={(e) => { e.stopPropagation(); setEditForm(p); setEditModalOpen(true); setOpenDropdown(null); }}
                                                     className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
                                                 >
                                                     Düzenle
                                                 </button>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setPasswordForm({ id: u.id, password: "" }); setPasswordModalOpen(true); setOpenDropdown(null); }}
-                                                    className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
-                                                >
-                                                    Parola Güncelle
-                                                </button>
                                             </div>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4">{u.name}</td>
-                                    <td className="px-6 py-4">{u.surname}</td>
-                                    <td className="px-6 py-4">{u.email}</td>
-                                    <td className="px-6 py-4">{u.phone}</td>
+                                    <td className="px-6 py-4">{p.name}</td>
+                                    <td className="px-6 py-4">{p.surname}</td>
+                                    <td className="px-6 py-4">{p.email}</td>
+                                    <td className="px-6 py-4">{p.phone}</td>
                                     <td className="px-6 py-4">
-                                        {u.departmentName ?? (u.departmentId ? `ID: ${u.departmentId}` : "—")}
+                                        {p.departmentId ? `ID: ${p.departmentId}` : "—"}
                                     </td>
                                 </tr>
                             ))}
@@ -208,13 +189,13 @@ const CreateUserPage: React.FC = () => {
             </div>
 
             {/* Confirm Modal */}
-            {confirmUserId !== null && (
+            {confirmPersonId !== null && (
                 <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
                     <div className="bg-white p-6 rounded-xl shadow-lg w-96">
                         <p className="mb-4">Bu kişiyi <b>Genel Kullanıcı</b> yapmak istediğinize emin misiniz?</p>
                         <div className="flex justify-end gap-3">
-                            <button onClick={() => setConfirmUserId(null)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Hayır</button>
-                            <button onClick={() => makeUser(confirmUserId)} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Evet</button>
+                            <button onClick={() => setConfirmPersonId(null)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Hayır</button>
+                            <button onClick={() => makeUser(confirmPersonId)} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Evet</button>
                         </div>
                     </div>
                 </div>
@@ -229,11 +210,14 @@ const CreateUserPage: React.FC = () => {
                         <input type="text" value={form.surname} onChange={(e) => setForm({ ...form, surname: e.target.value })} placeholder="Soyad" className="w-full p-2 border rounded mb-2" />
                         <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email" className="w-full p-2 border rounded mb-2" />
                         <input type="text" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Telefon" className="w-full p-2 border rounded mb-2" />
-                        <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Parola" className="w-full p-2 border rounded mb-2" />
-                        <select value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })} className="w-full p-2 border rounded mb-4">
+                        <select
+                            value={form.departmentId}
+                            onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
+                            className="w-full p-2 border rounded mb-4"
+                        >
                             <option value="">Departman Seç</option>
                             {departments.map((d) => (
-                                <option key={d.id} value={d.id}>{d.name}</option>
+                                <option key={d.id} value={String(d.id)}>{d.name}</option>
                             ))}
                         </select>
                         <div className="flex justify-end gap-3">
@@ -249,33 +233,28 @@ const CreateUserPage: React.FC = () => {
                 <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
                     <div className="bg-white p-6 rounded-xl shadow-lg w-96">
                         <h2 className="text-lg font-bold mb-4">Kişiyi Düzenle</h2>
-                        <input type="text" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="Ad" className="w-full p-2 border rounded mb-2" />
-                        <input type="text" value={editForm.surname} onChange={(e) => setEditForm({ ...editForm, surname: e.target.value })} placeholder="Soyad" className="w-full p-2 border rounded mb-2" />
-                        <input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} placeholder="Email" className="w-full p-2 border rounded mb-2" />
-                        <input type="text" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} placeholder="Telefon" className="w-full p-2 border rounded mb-2" />
-                        <select value={editForm.departmentId ?? ""} onChange={(e) => setEditForm({ ...editForm, departmentId: Number(e.target.value) })} className="w-full p-2 border rounded mb-4">
+                        <input type="text" value={editForm.name ?? ""} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="Ad" className="w-full p-2 border rounded mb-2" />
+                        <input type="text" value={editForm.surname ?? ""} onChange={(e) => setEditForm({ ...editForm, surname: e.target.value })} placeholder="Soyad" className="w-full p-2 border rounded mb-2" />
+                        <input type="email" value={editForm.email ?? ""} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} placeholder="Email" className="w-full p-2 border rounded mb-2" />
+                        <input type="text" value={editForm.phone ?? ""} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} placeholder="Telefon" className="w-full p-2 border rounded mb-2" />
+                        <select
+                            value={editForm.departmentId != null ? String(editForm.departmentId) : ""}
+                            onChange={(e) =>
+                                setEditForm({
+                                    ...editForm,
+                                    departmentId: e.target.value ? Number(e.target.value) : null,
+                                })
+                            }
+                            className="w-full p-2 border rounded mb-4"
+                        >
                             <option value="">Departman Seç</option>
                             {departments.map((d) => (
-                                <option key={d.id} value={d.id}>{d.name}</option>
+                                <option key={d.id} value={String(d.id)}>{d.name}</option>
                             ))}
                         </select>
                         <div className="flex justify-end gap-3">
                             <button onClick={() => { setEditModalOpen(false); setEditForm(null); }} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">İptal</button>
                             <button onClick={handleUpdate} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Kaydet</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Parola Güncelle Modal */}
-            {passwordModalOpen && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-                    <div className="bg-white p-6 rounded-xl shadow-lg w-96">
-                        <h2 className="text-lg font-bold mb-4">Parola Güncelle</h2>
-                        <input type="password" value={passwordForm.password} onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })} placeholder="Yeni Parola" className="w-full p-2 border rounded mb-4" />
-                        <div className="flex justify-end gap-3">
-                            <button onClick={() => { setPasswordModalOpen(false); setPasswordForm({ id: 0, password: "" }); }} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">İptal</button>
-                            <button onClick={handlePasswordUpdate} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Güncelle</button>
                         </div>
                     </div>
                 </div>

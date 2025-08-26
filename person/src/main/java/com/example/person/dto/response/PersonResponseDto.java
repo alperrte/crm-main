@@ -13,4 +13,5 @@ public class PersonResponseDto {
     private String phone;
     private Boolean active;
     private Long departmentId;
+    private String departmentName;
 }

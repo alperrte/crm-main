@@ -21,14 +21,13 @@ public class PersonController {
 
     private final PersonService personService;
 
-    // ✅ Giriş yapan PERSON’un bilgilerini döner (frontend burayı çağıracak)
+    // ✅ Giriş yapan PERSON’un bilgilerini döner
     @GetMapping("/me")
     public ResponseEntity<PersonResponseDto> getMe(Authentication auth) {
-        // JwtAuthFilter içinde principal olarak email set edilmiş olmalı
         String email = auth.getName();
-
         Optional<PersonEntity> opt = personService.getByEmail(email);
-        return opt.map(e -> ResponseEntity.ok(toResponse(e)))
+        return opt.map(this::toResponse)
+                .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -41,12 +40,13 @@ public class PersonController {
 
     @GetMapping("/{id}")
     public ResponseEntity<PersonResponseDto> getPersonById(@PathVariable Long id) {
-        Optional<PersonEntity> opt = personService.getPersonById(id);
-        return opt.map(e -> ResponseEntity.ok(toResponse(e)))
+        return personService.getPersonById(id)
+                .map(this::toResponse)
+                .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // ✅ user-service buraya POST atar
+    // ✅ sadece Person kaydı yapar (login yok!)
     @PostMapping
     public ResponseEntity<PersonResponseDto> createPerson(@RequestBody PersonRequestDto req) {
         PersonEntity entity = toEntity(req);
@@ -61,7 +61,8 @@ public class PersonController {
                                                           @RequestBody PersonRequestDto req) {
         PersonEntity in = toEntity(req);
         return personService.updatePerson(id, in)
-                .map(e -> ResponseEntity.ok(toResponse(e)))
+                .map(this::toResponse)
+                .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -78,7 +79,7 @@ public class PersonController {
                 .surname(r.getSurname())
                 .email(r.getEmail())
                 .phone(r.getPhone())
-                .departmentId(r.getDepartmentId()) // null olabilir
+                .departmentId(r.getDepartmentId())
                 .build();
     }
 

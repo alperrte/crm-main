@@ -1,4 +1,3 @@
-// src/pages/RolesPage.tsx
 import React, { useEffect, useState, useRef } from "react";
 import api from "../api/userApi";
 import { Link } from "react-router-dom";
@@ -25,8 +24,8 @@ const RolesPage: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const usersPerPage = 6;
 
-    // ✅ Rol filtresi için state
-    const [roleFilter, setRoleFilter] = useState<string>("USER"); // default: Genel Kullanıcılar
+    // ✅ Rol filtresi için state → açılışta "Hepsi"
+    const [roleFilter, setRoleFilter] = useState<string>("ALL");
 
     useEffect(() => {
         fetchUsers();
@@ -60,14 +59,10 @@ const RolesPage: React.FC = () => {
     // ✅ Rolleri UI için etiketle
     const roleLabel = (role: string | null) => {
         switch (role) {
-            case "ADMIN":
-                return "Yönetici";
-            case "PERSON":
-                return "Yetkili Çalışan";
-            case "USER":
-                return "Genel Kullanıcı";
-            default:
-                return "—";
+            case "ADMIN": return "Yönetici";
+            case "PERSON": return "Yetkili Çalışan";
+            case "USER": return "Genel Kullanıcı";
+            default: return "—";
         }
     };
 
@@ -89,7 +84,6 @@ const RolesPage: React.FC = () => {
                 {/* Header */}
                 <div className="flex justify-between items-center bg-gradient-to-r from-blue-400 to-cyan-400 text-white p-6">
                     <h1 className="text-2xl font-bold">Rol & Yetki Kontrolleri</h1>
-
                     <div className="flex items-center gap-4">
                         {/* ✅ Rol Filtresi */}
                         <select
@@ -100,10 +94,10 @@ const RolesPage: React.FC = () => {
                             }}
                             className="px-4 py-2 rounded-lg text-gray-800"
                         >
+                            <option value="ALL">Hepsi</option>
                             <option value="USER">Genel Kullanıcılar</option>
                             <option value="PERSON">Yetkili Çalışanlar</option>
                             <option value="ADMIN">Yöneticiler</option>
-                            <option value="ALL">Hepsi</option>
                         </select>
 
                         {/* Kontroller Dropdown */}
@@ -156,24 +150,9 @@ const RolesPage: React.FC = () => {
                                             </button>
                                             {openDropdown === u.id && (
                                                 <div className="absolute mt-2 bg-white shadow-lg rounded-lg z-50">
-                                                    <button
-                                                        onClick={() => setConfirmAction({ userId: u.id, role: "USER" })}
-                                                        className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
-                                                    >
-                                                        Genel Kullanıcı Rolü Ver
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setConfirmAction({ userId: u.id, role: "PERSON" })}
-                                                        className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
-                                                    >
-                                                        Yetkili Çalışan Rolü Ver
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setConfirmAction({ userId: u.id, role: "ADMIN" })}
-                                                        className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
-                                                    >
-                                                        Yönetici Rolü Ver
-                                                    </button>
+                                                    <button onClick={() => setConfirmAction({ userId: u.id, role: "USER" })} className="block px-4 py-2 hover:bg-gray-100 w-full text-left">Genel Kullanıcı Rolü Ver</button>
+                                                    <button onClick={() => setConfirmAction({ userId: u.id, role: "PERSON" })} className="block px-4 py-2 hover:bg-gray-100 w-full text-left">Yetkili Çalışan Rolü Ver</button>
+                                                    <button onClick={() => setConfirmAction({ userId: u.id, role: "ADMIN" })} className="block px-4 py-2 hover:bg-gray-100 w-full text-left">Yönetici Rolü Ver</button>
                                                 </div>
                                             )}
                                         </td>
@@ -221,8 +200,18 @@ const RolesPage: React.FC = () => {
                             Bu kullanıcıya <b>{roleLabel(confirmAction.role)}</b> rolü vermek istediğinize emin misiniz?
                         </p>
                         <div className="flex justify-end gap-3">
-                            <button onClick={() => setConfirmAction(null)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Hayır</button>
-                            <button onClick={() => updateRole(confirmAction.userId, confirmAction.role)} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Evet</button>
+                            <button
+                                onClick={() => setConfirmAction(null)}
+                                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                            >
+                                Hayır
+                            </button>
+                            <button
+                                onClick={() => updateRole(confirmAction.userId, confirmAction.role)}
+                                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                            >
+                                Evet
+                            </button>
                         </div>
                     </div>
                 </div>
