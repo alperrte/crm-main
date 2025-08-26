@@ -21,15 +21,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import java.io.IOException;
 
-/**
- * Spring Security yapılandırması:
- * - JWT ile stateless güvenlik
- * - /api/auth/** ve /actuator/** uç noktalarına izin verildi
- * - Diğer tüm istekler kimlik doğrulaması ister
- */
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // @PreAuthorize kullanabilmek için aktif etmemiz gerekiyor.
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
@@ -41,14 +35,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // CSRF kapalı (JWT kullandığımız için)
                 .csrf(AbstractHttpConfigurer::disable)
-
-                // 🔑 CORS desteğini aktif et (WebConfig'teki ayarları kullanacak)
                 .cors(cors -> {})
-
                 .authorizeHttpRequests(reg -> reg
-                        // Preflight isteklerine izin ver
+                        // Preflight izin
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // Public endpointler
@@ -56,29 +46,29 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/login",
                                 "/api/auth/refresh",
-                                // Actuator izinleri
                                 "/actuator",
                                 "/actuator/**"
                         ).permitAll()
 
-                        // diğer tüm istekler kimlik doğrulaması ister
+                        // Ticket açma: USER, PERSON, ADMIN
+                        .requestMatchers("/tickets/create").hasAnyRole("USER", "PERSON", "ADMIN")
+
+                        // Ticket yönetimi: PERSON, ADMIN
+                        .requestMatchers("/tickets/**").hasAnyRole("PERSON", "ADMIN")
+
+                        // Admin işlemleri
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+
+                        // diğer her şey auth ister
                         .anyRequest().authenticated()
                 )
-
-                // Oturum yönetimi stateless
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // Form ve basic login kapalı
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
-
-                // Yetkisiz ve erişim reddi durumlarını özel JSON ile döndür
                 .exceptionHandling(eh -> eh
                         .authenticationEntryPoint(SecurityConfig::unauthorizedEntryPoint)
                         .accessDeniedHandler(SecurityConfig::forbiddenHandler)
                 )
-
-                // JWT filtresini ekle
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -89,8 +79,6 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-
-    /** 401 döndürücü */
     private static void unauthorizedEntryPoint(
             HttpServletRequest req,
             HttpServletResponse res,
@@ -101,7 +89,6 @@ public class SecurityConfig {
         writeJson(res, HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized", msg);
     }
 
-    /** 403 döndürücü */
     private static void forbiddenHandler(
             HttpServletRequest req,
             HttpServletResponse res,
@@ -112,7 +99,6 @@ public class SecurityConfig {
         writeJson(res, HttpServletResponse.SC_FORBIDDEN, "Forbidden", msg);
     }
 
-    // JSON yanıt yazıcı
     private static void writeJson(HttpServletResponse res, int status, String error, String message) throws IOException {
         res.setStatus(status);
         res.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -121,7 +107,6 @@ public class SecurityConfig {
         res.getWriter().write(body);
     }
 
-    // Basit JSON escape
     private static String escape(String s) {
         if (s == null) return "";
         return s.replace("\\", "\\\\").replace("\"", "\\\"");

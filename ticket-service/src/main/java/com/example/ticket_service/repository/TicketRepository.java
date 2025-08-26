@@ -9,6 +9,8 @@ import java.util.List;
 
 public interface TicketRepository extends JpaRepository<TicketEntity, Long> {
 
+    // ✅ Tüm ticketları (müşteri bilgisiyle birlikte) tarihe göre getirir
     @EntityGraph(attributePaths = {"creatorCustomer"})
     List<TicketEntity> findAllByOrderByCreatedDateDesc();
+
 }

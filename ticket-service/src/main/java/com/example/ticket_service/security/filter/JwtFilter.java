@@ -1,4 +1,3 @@
-// src/main/java/com/example/ticket_service/security/filter/JwtFilter.java
 package com.example.ticket_service.security.filter;
 
 import com.example.ticket_service.security.jwt.JwtUtil;
@@ -32,6 +31,7 @@ public class JwtFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = req.getRequestURI();
+        // Public endpointler → token gerektirmez
         if (path.startsWith("/api/tickets/public")
                 || path.startsWith("/api/categories")
                 || path.startsWith("/actuator")) {
@@ -46,15 +46,15 @@ public class JwtFilter extends OncePerRequestFilter {
                 Claims claims = jwt.parse(token);
                 var roles = jwt.extractRoles(claims);
 
-                // 🔎 Debug log ekledik
                 log.info(">>> JWT subject: {}", claims.getSubject());
-                log.info(">>> JWT issuer: {}", claims.getIssuer());
-                log.info(">>> JWT claims: {}", claims);
                 log.info(">>> Extracted roles: {}", roles);
 
+                // ❌ rol yoksa → login başarısız
                 if (roles == null || roles.isEmpty()) {
-                    // 🔧 fallback: rol yoksa ADMIN ver
-                    roles = List.of("ADMIN");
+                    log.warn("Kullanıcının rolü yok → giriş reddedildi!");
+                    SecurityContextHolder.clearContext();
+                    chain.doFilter(req, res);
+                    return;
                 }
 
                 var auths = roles.stream()
@@ -62,7 +62,6 @@ public class JwtFilter extends OncePerRequestFilter {
                         .map(SimpleGrantedAuthority::new)
                         .toList();
 
-                // ✅ credentials içine token koyduk
                 var authentication =
                         new UsernamePasswordAuthenticationToken(
                                 claims.getSubject(),
@@ -71,6 +70,7 @@ public class JwtFilter extends OncePerRequestFilter {
                         );
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+
             } catch (Exception e) {
                 log.error("JWT parse/validate hatası", e);
                 SecurityContextHolder.clearContext();

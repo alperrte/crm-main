@@ -15,10 +15,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
-/**
- * Authorization: Bearer <token> başlığını okuyup
- * doğrulanmışsa SecurityContext'e kimliği yerleştirir.
- */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -51,24 +47,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Token geçersiz ise -> devam (401 üretmeyi config’e bırakırız)
+        // Token geçersiz ise -> devam
         if (jwtUtil.isTokenInvalid(token)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Geçerli -> kullanıcıyı context'e koy
         String username = jwtUtil.extractUsername(token);
         String role = jwtUtil.extractRole(token);
 
-        // Burada önemli kısım:
-        // Spring Security "hasRole('ADMIN')" dediğimizde "ROLE_ADMIN" authority arar.
-        // Bu yüzden JWT'den gelen "ADMIN" -> "ROLE_ADMIN" olarak çevrilir.
-        List<SimpleGrantedAuthority> authorities =
-                (role != null) ? List.of(new SimpleGrantedAuthority("ROLE_" + role))
-                        : List.of();
+        // ❌ Rol yoksa login olmasın
+        if (role == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-        // Username + rol bilgilerini SecurityContext'e koyuyoruz
+        List<SimpleGrantedAuthority> authorities =
+                List.of(new SimpleGrantedAuthority("ROLE_" + role));
+
         var authentication =
                 new UsernamePasswordAuthenticationToken(username, null, authorities);
 

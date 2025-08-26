@@ -31,11 +31,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                         .requestMatchers("/api/tickets/public/**").permitAll()
 
-                        // admin uçları (sadece ROLE_ADMIN görebilir)
+                        // admin uçları
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // departman uçları → hem ADMIN hem PERSON kullanabilir
+                        // departman uçları
                         .requestMatchers("/api/departments/**").hasAnyRole("ADMIN", "PERSON")
+
+                        // ✅ ticket oluşturma → USER, PERSON, ADMIN
+                        .requestMatchers(HttpMethod.POST, "/api/tickets/create")
+                        .hasAnyRole("USER", "PERSON", "ADMIN")
+
+                        // ✅ ticket listeleme & diğer ticket işlemleri → sadece PERSON ve ADMIN
+                        .requestMatchers("/api/tickets/**").hasAnyRole("PERSON", "ADMIN")
 
                         // geri kalan her şey authentication ister
                         .anyRequest().authenticated()

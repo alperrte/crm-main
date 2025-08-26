@@ -1,3 +1,4 @@
+// src/pages/RolesPage.tsx
 import React, { useEffect, useState, useRef } from "react";
 import api from "../api/userApi";
 import { Link } from "react-router-dom";
@@ -8,37 +9,35 @@ interface User {
     surname: string;
     email: string;
     phone: string;
-    role: string;
-    authorities?: string[]; // ✅ Yeni: yetkiler
+    role: string | null;
+    departmentName?: string | null;
 }
 
 const RolesPage: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(false);
-    const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
-    const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
-
     const [menuOpen, setMenuOpen] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<{ userId: number; role: string } | null>(null);
     const buttonRefs = useRef<Record<number, HTMLButtonElement | null>>({});
 
-    // ✅ Yeni kullanıcı oluşturma modal state
-    const [createModalOpen, setCreateModalOpen] = useState(false);
-    const [newUser, setNewUser] = useState({
-        name: "",
-        surname: "",
-        email: "",
-        phone: "",
-        password: "",
-    });
+    // ✅ Sayfalama için state
+    const [currentPage, setCurrentPage] = useState(1);
+    const usersPerPage = 6;
 
-    // ✅ Kullanıcıları getir
+    // ✅ Rol filtresi için state
+    const [roleFilter, setRoleFilter] = useState<string>("USER"); // default: Genel Kullanıcılar
+
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const res = await api.get("/admin/users"); // interceptor zaten token ekliyor
-            console.log("👉 Kullanıcılar:", res.data);
-            setUsers(res.data);
+            const res = await api.get("/admin/users");
+            const withRole = res.data.filter((u: User) => u.role !== null);
+            setUsers(withRole);
         } catch (err) {
             console.error("❌ Kullanıcılar alınamadı:", err);
         } finally {
@@ -46,252 +45,184 @@ const RolesPage: React.FC = () => {
         }
     };
 
-    useEffect(() => {
-        fetchUsers();
-    }, []);
-
-    // ✅ Rol güncelleme
     const updateRole = async (id: number, role: string) => {
         try {
-            await api.put(`/admin/users/${id}/role?role=${role}`);
-            setUsers((prev) =>
-                prev.map((u) => (u.id === id ? { ...u, role } : u))
-            );
+            await api.put(`/admin/users/${id}/role?role=${encodeURIComponent(role)}`);
+            await fetchUsers();
         } catch (err) {
             console.error("❌ Rol güncellenemedi:", err);
         } finally {
             setOpenDropdown(null);
+            setConfirmAction(null);
         }
     };
 
-    // ✅ Person yap
-    const makePerson = async (id: number) => {
-        try {
-            await api.put(`/admin/users/${id}/make-person`);
-            setUsers((prev) =>
-                prev.map((u) => (u.id === id ? { ...u, role: "PERSON" } : u))
-            );
-            setOpenDropdown(null);
-        } catch (err) {
-            console.error("❌ makePerson hatası:", err);
-        }
-    };
-
-    // ✅ Kullanıcı sil
-    const deleteUser = async (id: number) => {
-        try {
-            await api.delete(`/admin/users/${id}`);
-            setUsers((prev) => prev.filter((u) => u.id !== id));
-        } catch (err) {
-            console.error("❌ Kullanıcı silinemedi:", err);
-        } finally {
-            setConfirmDeleteId(null);
-        }
-    };
-
-    // ✅ Yeni kullanıcı oluştur
-    const createUser = async () => {
-        try {
-            const res = await api.post("/admin/users", newUser);
-            setUsers((prev) => [...prev, res.data]);
-            setCreateModalOpen(false);
-            setNewUser({
-                name: "",
-                surname: "",
-                email: "",
-                phone: "",
-                password: "",
-            });
-        } catch (err) {
-            console.error("❌ Yeni kullanıcı eklenemedi:", err);
-        }
-    };
-
-    const roleBadgeClass = (role: string) => {
+    // ✅ Rolleri UI için etiketle
+    const roleLabel = (role: string | null) => {
         switch (role) {
             case "ADMIN":
-                return "bg-gradient-to-r from-red-500 to-orange-500 text-white";
+                return "Yönetici";
             case "PERSON":
-                return "bg-gradient-to-r from-teal-400 to-green-500 text-white";
+                return "Yetkili Çalışan";
             case "USER":
-                return "bg-gradient-to-r from-pink-400 to-purple-500 text-white";
+                return "Genel Kullanıcı";
             default:
-                return "bg-gray-300 text-gray-800";
+                return "—";
         }
     };
 
-    const handleDropdownToggle = (id: number) => {
-        if (openDropdown === id) {
-            setOpenDropdown(null);
-            return;
-        }
-        const btn = buttonRefs.current[id];
-        if (btn) {
-            const rect = btn.getBoundingClientRect();
-            setDropdownPos({ top: rect.bottom + window.scrollY, left: rect.left });
-        }
-        setOpenDropdown(id);
-    };
+    // ✅ Role göre filtrelenmiş kullanıcılar
+    const filteredUsers = users.filter((u) => {
+        if (roleFilter === "ALL") return true;
+        return u.role === roleFilter;
+    });
+
+    // ✅ Gösterilecek kullanıcıları hesapla
+    const indexOfLastUser = currentPage * usersPerPage;
+    const indexOfFirstUser = indexOfLastUser - usersPerPage;
+    const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+    const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
     return (
         <div className="min-h-screen p-6 bg-gradient-to-br from-indigo-400 to-purple-600 flex justify-center">
-            <div className="w-full max-w-7xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div className="w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-400 to-cyan-400 text-white p-8 flex justify-between items-center relative">
-                    <div className="text-center flex-1">
-                        <h1 className="text-3xl font-light mb-2">Rol & Yetki Kontrolleri</h1>
-                        <p className="opacity-90 text-lg">Kullanıcı rollerini ve yetkilerini yönetin</p>
-                    </div>
+                <div className="flex justify-between items-center bg-gradient-to-r from-blue-400 to-cyan-400 text-white p-6">
+                    <h1 className="text-2xl font-bold">Rol & Yetki Kontrolleri</h1>
 
-                    {/* Kontroller dropdown */}
-                    <div className="relative flex gap-4 items-center">
-                        <button
-                            onClick={() => setCreateModalOpen(true)}
-                            className="px-5 py-2 rounded-full bg-white/20 border border-white/30 hover:bg-white/30 transition shadow"
+                    <div className="flex items-center gap-4">
+                        {/* ✅ Rol Filtresi */}
+                        <select
+                            value={roleFilter}
+                            onChange={(e) => {
+                                setRoleFilter(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                            className="px-4 py-2 rounded-lg text-gray-800"
                         >
-                            + Kullanıcı Oluştur
-                        </button>
-                        <button
-                            onClick={() => setMenuOpen(!menuOpen)}
-                            className="px-5 py-2 rounded-full bg-white/20 border border-white/30 hover:bg-white/30 transition shadow"
-                        >
-                            Kontroller
-                        </button>
-                        {menuOpen && (
-                            <div className="absolute right-0 mt-2 w-56 bg-white text-gray-800 rounded-lg shadow-lg overflow-hidden z-20">
-                                <Link to="/admin" className="block px-4 py-2 hover:bg-gray-100">Admin Panel</Link>
-                                <Link to="/admin/departments" className="block px-4 py-2 hover:bg-gray-100">Departman Kontrolleri</Link>
-                                <Link to="/admin/persons" className="block px-4 py-2 hover:bg-gray-100">Person Kontrolleri</Link>
-                            </div>
-                        )}
+                            <option value="USER">Genel Kullanıcılar</option>
+                            <option value="PERSON">Yetkili Çalışanlar</option>
+                            <option value="ADMIN">Yöneticiler</option>
+                            <option value="ALL">Hepsi</option>
+                        </select>
+
+                        {/* Kontroller Dropdown */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setMenuOpen(!menuOpen)}
+                                className="px-5 py-2 rounded-full bg-white/20 border border-white/30 hover:bg-white/30 transition shadow"
+                            >
+                                Kontroller ▼
+                            </button>
+                            {menuOpen && (
+                                <div className="absolute right-0 mt-2 w-56 bg-white text-gray-800 rounded-lg shadow-lg overflow-hidden z-20">
+                                    <Link to="/admin" className="block px-4 py-2 hover:bg-gray-100" onClick={() => setMenuOpen(false)}>Admin Panel</Link>
+                                    <Link to="/admin/departments" className="block px-4 py-2 hover:bg-gray-100" onClick={() => setMenuOpen(false)}>Departman Kontrolleri</Link>
+                                    <Link to="/admin/create-user" className="block px-4 py-2 hover:bg-gray-100" onClick={() => setMenuOpen(false)}>Kullanıcı Oluştur</Link>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 {/* Table */}
-                <div className="p-6 overflow-x-auto">
+                <div className="p-6">
                     {loading ? (
                         <p>Yükleniyor...</p>
                     ) : (
-                        <table className="w-full border-collapse rounded-xl shadow-lg">
-                            <thead>
-                            <tr className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-left text-sm tracking-wide">
-                                <th className="px-6 py-3">ID</th>
-                                <th className="px-6 py-3">Ad</th>
-                                <th className="px-6 py-3">Soyad</th>
-                                <th className="px-6 py-3">Email</th>
-                                <th className="px-6 py-3">Telefon</th>
-                                <th className="px-6 py-3">Rol</th>
-                                <th className="px-6 py-3">Yetkiler</th> {/* ✅ Yeni sütun */}
-                                <th className="px-6 py-3">İşlemler</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {users.map((u) => (
-                                <tr key={u.id} className="hover:bg-gray-50 transition transform hover:-translate-y-0.5">
-                                    <td className="px-6 py-4">{u.id}</td>
-                                    <td className="px-6 py-4">{u.name}</td>
-                                    <td className="px-6 py-4">{u.surname}</td>
-                                    <td className="px-6 py-4">{u.email}</td>
-                                    <td className="px-6 py-4">{u.phone}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-4 py-2 rounded-full text-sm font-semibold uppercase ${roleBadgeClass(u.role)}`}>
-                                            {u.role}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        {u.authorities && u.authorities.length > 0 ? (
-                                            <div className="flex flex-wrap gap-2">
-                                                {u.authorities.map((auth) => (
-                                                    <span
-                                                        key={auth}
-                                                        className="px-2 py-1 rounded-full bg-blue-500 text-white text-xs"
+                        <>
+                            <table className="w-full border-collapse rounded-xl shadow-lg">
+                                <thead>
+                                <tr className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-left text-sm">
+                                    <th className="px-6 py-3">İşlemler</th>
+                                    <th className="px-6 py-3">Ad</th>
+                                    <th className="px-6 py-3">Soyad</th>
+                                    <th className="px-6 py-3">Email</th>
+                                    <th className="px-6 py-3">Telefon</th>
+                                    <th className="px-6 py-3">Departman</th>
+                                    <th className="px-6 py-3">Rol</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {currentUsers.map((u) => (
+                                    <tr key={u.id} className="hover:bg-gray-50 relative">
+                                        <td className="px-6 py-4">
+                                            <button
+                                                ref={(el) => { buttonRefs.current[u.id] = el; }}
+                                                onClick={() => setOpenDropdown(openDropdown === u.id ? null : u.id)}
+                                                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-full font-semibold"
+                                            >
+                                                İşlemler ▼
+                                            </button>
+                                            {openDropdown === u.id && (
+                                                <div className="absolute mt-2 bg-white shadow-lg rounded-lg z-50">
+                                                    <button
+                                                        onClick={() => setConfirmAction({ userId: u.id, role: "USER" })}
+                                                        className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
                                                     >
-                                                        {auth}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <span className="text-gray-400 italic">Yetki yok</span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <button
-                                            ref={(el) => { buttonRefs.current[u.id] = el; }}
-                                            onClick={() => handleDropdownToggle(u.id)}
-                                            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-full font-semibold flex items-center gap-2"
-                                        >
-                                            İşlemler ▼
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {users.length === 0 && (
-                                <tr>
-                                    <td colSpan={8} className="text-center text-gray-500 py-10">Kayıt yok</td>
-                                </tr>
+                                                        Genel Kullanıcı Rolü Ver
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setConfirmAction({ userId: u.id, role: "PERSON" })}
+                                                        className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
+                                                    >
+                                                        Yetkili Çalışan Rolü Ver
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setConfirmAction({ userId: u.id, role: "ADMIN" })}
+                                                        className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
+                                                    >
+                                                        Yönetici Rolü Ver
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4">{u.name}</td>
+                                        <td className="px-6 py-4">{u.surname}</td>
+                                        <td className="px-6 py-4">{u.email}</td>
+                                        <td className="px-6 py-4">{u.phone}</td>
+                                        <td className="px-6 py-4">{u.departmentName ?? "—"}</td>
+                                        <td className="px-6 py-4">{roleLabel(u.role)}</td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+
+                            {/* ✅ Pagination */}
+                            {totalPages > 1 && (
+                                <div className="flex justify-center items-center gap-4 mt-6">
+                                    <button
+                                        disabled={currentPage === 1}
+                                        onClick={() => setCurrentPage((prev) => prev - 1)}
+                                        className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                                    >
+                                        Önceki
+                                    </button>
+                                    <span>Sayfa {currentPage} / {totalPages}</span>
+                                    <button
+                                        disabled={currentPage === totalPages}
+                                        onClick={() => setCurrentPage((prev) => prev + 1)}
+                                        className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                                    >
+                                        Sonraki
+                                    </button>
+                                </div>
                             )}
-                            </tbody>
-                        </table>
+                        </>
                     )}
                 </div>
             </div>
 
-            {/* Floating Dropdown */}
-            {openDropdown !== null && dropdownPos && (
-                <div
-                    className="fixed bg-white rounded-xl shadow-xl z-50 min-w-[200px]"
-                    style={{ top: dropdownPos.top + 5, left: dropdownPos.left }}
-                >
-                    <button onClick={() => updateRole(openDropdown, "ADMIN")} className="block w-full text-left px-5 py-3 hover:bg-gray-100">Admin Yap</button>
-                    <button onClick={() => makePerson(openDropdown)} className="block w-full text-left px-5 py-3 hover:bg-gray-100">Person Yap</button>
-                    <button onClick={() => updateRole(openDropdown, "USER")} className="block w-full text-left px-5 py-3 hover:bg-gray-100">User Yap</button>
-                    <button onClick={() => setConfirmDeleteId(openDropdown)} className="block w-full text-left px-5 py-3 text-red-600 hover:bg-red-50">Sil</button>
-                </div>
-            )}
-
-            {/* Silme onay kutusu */}
-            {confirmDeleteId !== null && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black/40">
-                    <div className="bg-white p-6 rounded-xl shadow-lg w-80">
-                        <p className="mb-4">Bu kullanıcıyı silmek istediğinize emin misiniz?</p>
-                        <div className="flex justify-end space-x-4">
-                            <button onClick={() => setConfirmDeleteId(null)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Hayır</button>
-                            <button onClick={() => deleteUser(confirmDeleteId)} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Evet</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Yeni kullanıcı oluştur modal */}
-            {createModalOpen && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black/40">
-                    <div className="bg-white p-6 rounded-xl shadow-lg w-[400px]">
-                        <h2 className="text-xl font-semibold mb-4">Yeni Kullanıcı Oluştur</h2>
-                        <div className="space-y-3">
-                            <input type="text" placeholder="Ad"
-                                   className="w-full border px-3 py-2 rounded"
-                                   value={newUser.name}
-                                   onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}/>
-                            <input type="text" placeholder="Soyad"
-                                   className="w-full border px-3 py-2 rounded"
-                                   value={newUser.surname}
-                                   onChange={(e) => setNewUser({ ...newUser, surname: e.target.value })}/>
-                            <input type="email" placeholder="Email"
-                                   className="w-full border px-3 py-2 rounded"
-                                   value={newUser.email}
-                                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}/>
-                            <input type="text" placeholder="Telefon"
-                                   className="w-full border px-3 py-2 rounded"
-                                   value={newUser.phone}
-                                   onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}/>
-                            <input type="password" placeholder="Şifre"
-                                   className="w-full border px-3 py-2 rounded"
-                                   value={newUser.password}
-                                   onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}/>
-                        </div>
-                        <div className="flex justify-end space-x-4 mt-4">
-                            <button onClick={() => setCreateModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">İptal</button>
-                            <button onClick={createUser} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Oluştur</button>
+            {/* Confirm Modal */}
+            {confirmAction && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+                    <div className="bg-white p-6 rounded-xl shadow-lg w-96">
+                        <p className="mb-4">
+                            Bu kullanıcıya <b>{roleLabel(confirmAction.role)}</b> rolü vermek istediğinize emin misiniz?
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button onClick={() => setConfirmAction(null)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Hayır</button>
+                            <button onClick={() => updateRole(confirmAction.userId, confirmAction.role)} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Evet</button>
                         </div>
                     </div>
                 </div>

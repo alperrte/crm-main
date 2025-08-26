@@ -18,19 +18,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors(c -> {})        // <— CORS Bean’ini aktif eder
-                .csrf(csrf -> csrf.disable())
+                .cors(c -> {}) // CORS aktif
+                .csrf(csrf -> csrf.disable()) // CSRF kapalı
 
                 // Session yok → tamamen stateless
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // Endpoint kuralları
                 .authorizeHttpRequests(auth -> auth
-                        // Actuator health/info → serbest
-                        .requestMatchers("/actuator/**").permitAll()
-                        // Department API → JWT zorunlu
-                        .requestMatchers("/api/department/**").authenticated()
-                        // Diğer tüm istekler → JWT zorunlu
+                        .requestMatchers("/actuator/**").permitAll() // health/info serbest
+                        .requestMatchers("/api/departments/**").authenticated() // ✅ artık doğru endpoint
                         .anyRequest().authenticated()
                 )
 

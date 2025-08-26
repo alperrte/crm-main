@@ -8,5 +8,5 @@ public class PersonRequestDto {
     private String surname;
     private String email;
     private String phone;
-    private Long departmentId; // ✅ NULL gelebilir
+    private Long departmentId; // NULL olabilir
 }

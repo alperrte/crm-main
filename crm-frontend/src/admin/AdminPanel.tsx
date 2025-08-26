@@ -70,13 +70,12 @@ const AdminPanel: React.FC = () => {
                                 >
                                     Rol Kontrolleri
                                 </Link>
-                                {/* ✅ Yeni ekleme */}
                                 <Link
-                                    to="/admin/persons"
+                                    to="/admin/create-user"   // ✅ yeni eklendi
                                     className="block px-5 py-3 hover:bg-indigo-500/20"
                                     onClick={() => setMenuOpen(false)}
                                 >
-                                    Person Yönetimi
+                                    Kullanıcı Oluştur
                                 </Link>
                             </div>
                         )}
@@ -150,14 +149,14 @@ const AdminPanel: React.FC = () => {
                                     {t.description}
                                 </td>
                                 <td className="px-4 py-3">
-                                    <span className={priorityClass(t.priority)}>
-                                        {t.priority}
-                                    </span>
+                                        <span className={priorityClass(t.priority)}>
+                                            {t.priority}
+                                        </span>
                                 </td>
                                 <td className="px-4 py-3">
-                                    <span className={statusClass(t.active)}>
-                                        {t.active ? "Evet" : "Hayır"}
-                                    </span>
+                                        <span className={statusClass(t.active)}>
+                                            {t.active ? "Evet" : "Hayır"}
+                                        </span>
                                 </td>
                             </tr>
                         ))}

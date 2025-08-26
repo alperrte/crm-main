@@ -19,13 +19,14 @@ public class PersonClient {
     private String personServiceUrl;   // docker-compose: http://person:8082
 
     // ✅ Yeni Person oluştur
-    public Long createPersonFromUser(String name, String surname, String email, String phone, String jwtToken) {
+    public Long createPersonFromUser(String name, String surname, String email, String phone,
+                                     Long departmentId, String jwtToken) {
         Map<String, Object> req = new HashMap<>();
         req.put("name", name != null ? name : "");
         req.put("surname", surname != null ? surname : "");
         req.put("email", email != null ? email : "");
         req.put("phone", phone != null ? phone : "");
-        req.put("departmentId", null); // departman ataması sonra yapılacak
+        req.put("departmentId", departmentId); // Artık null değil, frontend’den geliyor
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

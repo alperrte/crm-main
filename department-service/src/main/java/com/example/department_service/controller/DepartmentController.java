@@ -1,4 +1,3 @@
-
 package com.example.department_service.controller;
 
 import com.example.department_service.dto.request.DepartmentRequest;
@@ -11,13 +10,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@RestController // Controller olduğunu belirtir (Spring MVC)
-@RequestMapping("/departments") // Tüm endpoint'ler /departments ile başlar
+@RestController
+@RequestMapping("/api/departments") // ✅ api prefix eklendi
 public class DepartmentController {
 
     private final DepartmentService departmentService;
 
-    // Constructor injection
     public DepartmentController(DepartmentService departmentService) {
         this.departmentService = departmentService;
     }
@@ -26,8 +24,6 @@ public class DepartmentController {
     @GetMapping
     public ResponseEntity<List<DepartmentResponse>> getAllDepartments() {
         List<DepartmentEntity> departments = departmentService.getAllDepartments();
-
-        // Entity → ResponseDTO dönüşümü
         List<DepartmentResponse> response = departments.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
@@ -88,7 +84,7 @@ public class DepartmentController {
                 .name(dto.getName())
                 .parentDepartmentId(dto.getParentDepartmentId())
                 .updatedUserId(dto.getUpdatedUserId())
-                .active(true)  // Yeni oluşturulan departman varsayılan olarak aktif
+                .active(true)   // yeni departman → default aktif
                 .deleted(false)
                 .updated(false)
                 .build();

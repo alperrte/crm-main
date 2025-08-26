@@ -1,3 +1,4 @@
+// src/pages/DepartmentsPage.tsx
 import React, { useEffect, useState } from "react";
 import departmentApi from "../api/departmentApi";
 import { Link } from "react-router-dom";
@@ -6,9 +7,13 @@ type Department = {
     id: number;
     name: string;
     parentDepartmentId?: number | null;
+    children?: Department[];
 };
 
-const emptyForm: Omit<Department, "id"> = { name: "", parentDepartmentId: null };
+const emptyForm: Omit<Department, "id" | "children"> = {
+    name: "",
+    parentDepartmentId: null,
+};
 
 const DepartmentsPage: React.FC = () => {
     const [items, setItems] = useState<Department[]>([]);
@@ -17,22 +22,34 @@ const DepartmentsPage: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
-    const [form, setForm] = useState<Omit<Department, "id">>(emptyForm);
+    const [form, setForm] = useState<Omit<Department, "id" | "children">>(
+        emptyForm
+    );
 
-    // ✅ Dropdown state
     const [menuOpen, setMenuOpen] = useState(false);
-
-    // ✅ Silme onay için state
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-
-    // ✅ Expand/collapse state
     const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+    const [openDropdown, setOpenDropdown] = useState<number | null>(null);
 
     const fetchAll = async () => {
         setLoading(true);
         try {
             const res = await departmentApi.get<Department[]>("/api/admin/departments");
-            setItems(res.data);
+            const flat = res.data;
+
+            const map: Record<number, Department> = {};
+            flat.forEach((d) => (map[d.id] = { ...d, children: [] }));
+
+            const roots: Department[] = [];
+            flat.forEach((d) => {
+                if (d.parentDepartmentId && map[d.parentDepartmentId]) {
+                    map[d.parentDepartmentId].children!.push(map[d.id]);
+                } else {
+                    roots.push(map[d.id]);
+                }
+            });
+
+            setItems(roots);
         } finally {
             setLoading(false);
         }
@@ -52,7 +69,10 @@ const DepartmentsPage: React.FC = () => {
     const openEdit = (row: Department) => {
         setIsEdit(true);
         setEditId(row.id);
-        setForm({ name: row.name, parentDepartmentId: row.parentDepartmentId ?? null });
+        setForm({
+            name: row.name,
+            parentDepartmentId: row.parentDepartmentId ?? null,
+        });
         setShowForm(true);
     };
 
@@ -69,11 +89,10 @@ const DepartmentsPage: React.FC = () => {
         fetchAll();
     };
 
-    // ✅ Silme
     const deleteDepartment = async (id: number) => {
         try {
             await departmentApi.delete(`/api/admin/departments/${id}`);
-            setItems((prev) => prev.filter((d) => d.id !== id));
+            fetchAll();
         } catch (err) {
             console.error(err);
         } finally {
@@ -81,14 +100,63 @@ const DepartmentsPage: React.FC = () => {
         }
     };
 
-    // ✅ Departmanları ayırma
-    const mainDepartments = items.filter((d) => !d.parentDepartmentId);
-    const getChildren = (parentId: number) =>
-        items.filter((d) => d.parentDepartmentId === parentId);
-
     const toggleExpand = (id: number) => {
         setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
     };
+
+    // ✅ Recursive render
+    const renderDepartment = (dep: Department, parentName: string | null = null, level = 0) => (
+        <React.Fragment key={dep.id}>
+            <tr className={level > 0 ? "bg-gray-50" : ""}>
+                {/* İşlemler en solda */}
+                <td className="px-6 py-4 relative">
+                    <button
+                        onClick={() => setOpenDropdown(openDropdown === dep.id ? null : dep.id)}
+                        className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-1 rounded-full font-semibold text-sm"
+                    >
+                        İşlemler ▼
+                    </button>
+
+                    {openDropdown === dep.id && (
+                        <div className="absolute mt-2 bg-white shadow-lg rounded-lg z-50">
+                            <button
+                                onClick={() => openEdit(dep)}
+                                className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
+                            >
+                                Güncelle
+                            </button>
+                            <button
+                                onClick={() => setConfirmDeleteId(dep.id)}
+                                className="block px-4 py-2 text-red-600 hover:bg-red-50 w-full text-left"
+                            >
+                                Sil
+                            </button>
+                        </div>
+                    )}
+                </td>
+
+                <td
+                    className="px-6 py-4 font-bold text-gray-900 cursor-pointer"
+                    onClick={() => toggleExpand(dep.id)}
+                >
+                    {dep.children && dep.children.length > 0
+                        ? expanded[dep.id]
+                            ? "▼ "
+                            : "▶ "
+                        : ""}
+                    {level > 0 && "↳ "} {dep.name}
+                </td>
+                <td className="px-6 py-4 italic text-gray-500">
+                    {parentName ?? "-"}
+                </td>
+            </tr>
+
+            {expanded[dep.id] &&
+                dep.children?.map((child) =>
+                    renderDepartment(child, dep.name, level + 1)
+                )}
+        </React.Fragment>
+    );
 
     return (
         <div className="min-h-screen p-6 bg-gradient-to-br from-indigo-400 to-purple-600 flex justify-center items-start">
@@ -98,7 +166,15 @@ const DepartmentsPage: React.FC = () => {
                     <h1 className="text-3xl font-light tracking-wide">Departman Kontrolleri</h1>
 
                     <div className="flex items-center gap-4">
-                        {/* 🔹 Kontroller dropdown menüsü */}
+                        {/* 🔹 +Oluştur solda */}
+                        <button
+                            onClick={openCreate}
+                            className="flex items-center gap-2 bg-white/20 border-2 border-white/30 px-5 py-2 rounded-full hover:bg-white/30 transition shadow"
+                        >
+                            + Oluştur
+                        </button>
+
+                        {/* 🔹 Kontroller sağda */}
                         <div className="relative">
                             <button
                                 onClick={() => setMenuOpen(!menuOpen)}
@@ -114,40 +190,21 @@ const DepartmentsPage: React.FC = () => {
                                     >
                                         Admin Panel
                                     </Link>
-                                    <a
-                                        href="http://localhost:3000/admin/roles"
+                                    <Link
+                                        to="/admin/roles"
                                         className="block px-4 py-2 hover:bg-gray-100"
                                     >
                                         Rol Kontrolleri
-                                    </a>
-                                    <a
-                                        href="http://localhost:3000/admin/persons"
+                                    </Link>
+                                    <Link
+                                        to="/admin/create-user"
                                         className="block px-4 py-2 hover:bg-gray-100"
                                     >
-                                        Person Kontrolleri
-                                    </a>
+                                        Kullanıcı Oluştur
+                                    </Link>
                                 </div>
                             )}
                         </div>
-
-                        {/* 🔹 +Oluştur butonu */}
-                        <button
-                            onClick={openCreate}
-                            className="flex items-center gap-2 bg-white/20 border-2 border-white/30 px-5 py-2 rounded-full hover:bg-white/30 transition shadow"
-                        >
-                            <svg
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                            >
-                                <line x1="12" y1="5" x2="12" y2="19" />
-                                <line x1="5" y1="12" x2="19" y2="12" />
-                            </svg>
-                            + Oluştur
-                        </button>
                     </div>
                 </div>
 
@@ -160,80 +217,20 @@ const DepartmentsPage: React.FC = () => {
                             <table className="w-full border-collapse rounded-xl shadow-lg overflow-hidden">
                                 <thead>
                                 <tr className="bg-gray-100 text-gray-700 uppercase text-sm tracking-wider">
-                                    <th className="px-6 py-3 text-left">ID</th>
+                                    <th className="px-6 py-3 text-left">İşlemler</th>
                                     <th className="px-6 py-3 text-left">Ad</th>
                                     <th className="px-6 py-3 text-left">Üst Departman</th>
-                                    <th className="px-6 py-3 text-left">İşlemler</th>
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {mainDepartments.length === 0 && (
+                                {items.length === 0 && (
                                     <tr>
                                         <td colSpan={4} className="text-center text-gray-500 py-10">
                                             <h3 className="text-lg font-medium">Kayıt yok</h3>
                                         </td>
                                     </tr>
                                 )}
-
-                                {mainDepartments.map((dept) => (
-                                    <React.Fragment key={dept.id}>
-                                        {/* Ana departman satırı */}
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 font-semibold text-indigo-600 w-20">
-                                                {dept.id}
-                                            </td>
-                                            <td
-                                                className="px-6 py-4 font-bold text-gray-900 cursor-pointer"
-                                                onClick={() => toggleExpand(dept.id)}
-                                            >
-                                                {expanded[dept.id] ? "▼ " : "▶ "} {dept.name}
-                                            </td>
-                                            <td className="px-6 py-4 italic text-gray-500">-</td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex gap-3">
-                                                    <button
-                                                        onClick={() => openEdit(dept)}
-                                                        className="px-4 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-yellow-400 to-yellow-300 text-gray-800 hover:shadow-lg transition"
-                                                    >
-                                                        Güncelle
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setConfirmDeleteId(dept.id)}
-                                                        className="px-4 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-red-500 to-red-400 text-white hover:shadow-lg transition"
-                                                    >
-                                                        Sil
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-
-                                        {/* Alt departmanlar */}
-                                        {expanded[dept.id] &&
-                                            getChildren(dept.id).map((child) => (
-                                                <tr key={child.id} className="bg-gray-50">
-                                                    <td className="px-6 py-4 text-indigo-400">{child.id}</td>
-                                                    <td className="px-6 py-4 pl-10">↳ {child.name}</td>
-                                                    <td className="px-6 py-4">{dept.name}</td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex gap-3">
-                                                            <button
-                                                                onClick={() => openEdit(child)}
-                                                                className="px-4 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-yellow-400 to-yellow-300 text-gray-800 hover:shadow-lg transition"
-                                                            >
-                                                                Güncelle
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setConfirmDeleteId(child.id)}
-                                                                className="px-4 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-red-500 to-red-400 text-white hover:shadow-lg transition"
-                                                            >
-                                                                Sil
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                    </React.Fragment>
-                                ))}
+                                {items.map((dep) => renderDepartment(dep))}
                                 </tbody>
                             </table>
                         </div>
@@ -267,7 +264,7 @@ const DepartmentsPage: React.FC = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-1">
-                                    Üst Departman (boş bırakılırsa ana departman olur)
+                                    Üst Departman
                                 </label>
                                 <select
                                     value={form.parentDepartmentId ?? ""}
@@ -281,7 +278,7 @@ const DepartmentsPage: React.FC = () => {
                                     className="w-full border rounded px-3 py-2"
                                 >
                                     <option value="">(Ana Departman Olarak Ekle)</option>
-                                    {mainDepartments.map((d) => (
+                                    {items.map((d) => (
                                         <option key={d.id} value={d.id}>
                                             {d.name}
                                         </option>
