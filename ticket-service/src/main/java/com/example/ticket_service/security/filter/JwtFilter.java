@@ -45,20 +45,34 @@ public class JwtFilter extends OncePerRequestFilter {
             try {
                 Claims claims = jwt.parse(token);
                 var roles = jwt.extractRoles(claims);
+
+                // 🔎 Debug log ekledik
+                log.info(">>> JWT subject: {}", claims.getSubject());
+                log.info(">>> JWT issuer: {}", claims.getIssuer());
+                log.info(">>> JWT claims: {}", claims);
+                log.info(">>> Extracted roles: {}", roles);
+
                 if (roles == null || roles.isEmpty()) {
-                    // 🔧 Geçici fallback: token geçerli ama rol yoksa ADMIN ver
+                    // 🔧 fallback: rol yoksa ADMIN ver
                     roles = List.of("ADMIN");
                 }
+
                 var auths = roles.stream()
                         .map(r -> r.startsWith("ROLE_") ? r : "ROLE_" + r)
                         .map(SimpleGrantedAuthority::new)
                         .toList();
 
+                // ✅ credentials içine token koyduk
                 var authentication =
-                        new UsernamePasswordAuthenticationToken(claims.getSubject(), null, auths);
+                        new UsernamePasswordAuthenticationToken(
+                                claims.getSubject(),
+                                token,
+                                auths
+                        );
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception e) {
+                log.error("JWT parse/validate hatası", e);
                 SecurityContextHolder.clearContext();
             }
         }

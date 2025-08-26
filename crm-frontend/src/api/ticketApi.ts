@@ -9,7 +9,6 @@ const ticketApi = axios.create({
 const getToken = () => {
     const raw = localStorage.getItem("token");
     if (!raw) return null;
-    // Eğer yanlışlıkla JSON.stringify ile kaydedildiyse
     return raw.startsWith('"') ? JSON.parse(raw) : raw;
 };
 
@@ -51,6 +50,28 @@ export interface AdminTicket {
     createdDate?: string;
 }
 
+export interface DeptTicket {
+    id: number;
+    customerEmail?: string;
+    customerName?: string;
+    customerSurname?: string;
+    customerPhone?: string | null;
+    issue: string;
+    priority: string;
+    active: boolean;
+    createdDate?: string;
+
+    // 🔹 yeni alanlar
+    status?: string;
+    departmentId?: number;
+}
+
+export interface InternalTicketRequest {
+    issue: string;
+    priority: string;
+    categoryId?: number;
+}
+
 // ========== API Fonksiyonları ==========
 
 // Public ticket oluşturma
@@ -83,17 +104,7 @@ export const getCategories = async (): Promise<Category[]> => {
 // Admin ticket listesi
 export const getAdminTickets = async (): Promise<AdminTicket[]> => {
     const res = await ticketApi.get("/api/admin/tickets");
-    const arr = res.data as Array<{
-        id: number;
-        customerEmail: string;
-        customerName: string;
-        customerSurname: string;
-        customerPhone: string | null;
-        issue: string;
-        priority: string;
-        active: boolean;
-        createdDate?: string;
-    }>;
+    const arr = res.data as Array<any>;
     return arr.map((t) => ({
         id: t.id,
         email: t.customerEmail,
@@ -105,6 +116,49 @@ export const getAdminTickets = async (): Promise<AdminTicket[]> => {
         active: t.active,
         createdDate: t.createdDate,
     }));
+};
+
+// ========== ✅ Departman Ticket API Fonksiyonları ==========
+
+// Departman ticketlarını getir
+export const getDeptTickets = async (deptId: number): Promise<DeptTicket[]> => {
+    const res = await ticketApi.get(`/api/departments/${deptId}/tickets`);
+    return res.data;
+};
+
+// Ticket üstlen
+export const takeTicket = async (ticketId: number, deptId: number): Promise<DeptTicket> => {
+    const res = await ticketApi.put(`/api/departments/${ticketId}/take?deptId=${deptId}`);
+    return res.data;
+};
+
+// Ticket devret
+export const reassignTicket = async (
+    ticketId: number,
+    fromDeptId: number,
+    newDeptId: number
+): Promise<DeptTicket> => {
+    const res = await ticketApi.put(
+        `/api/departments/${ticketId}/reassign/${newDeptId}?fromDeptId=${fromDeptId}`
+    );
+    return res.data;
+};
+
+// Ticket kapat
+export const closeTicket = async (ticketId: number): Promise<DeptTicket> => {
+    const res = await ticketApi.put(`/api/departments/${ticketId}/close`);
+    return res.data;
+};
+
+// İç ticket oluştur
+export const createInternalTicket = async (
+    deptId: number,
+    data: InternalTicketRequest
+): Promise<DeptTicket> => {
+    const res = await ticketApi.post(`/api/departments/${deptId}/tickets/internal`, data, {
+        headers: { "Content-Type": "application/json" },
+    });
+    return res.data;
 };
 
 export default ticketApi;

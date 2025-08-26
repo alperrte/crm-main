@@ -1,4 +1,3 @@
-// src/main/java/com/example/person/security/filter/JwtAuthFilter.java
 package com.example.person.security.filter;
 
 import com.example.person.security.jwt.JwtUtil;
@@ -16,7 +15,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -41,10 +42,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String token = header.substring(7);
             try {
                 Claims claims = jwt.parse(token);
+
+                // 🔑 Roller
                 var roles = jwt.extractRoles(claims);
                 if (roles == null || roles.isEmpty()) {
-                    // fallback: admin olsun
-                    roles = List.of("ADMIN");
+                    roles = List.of("ADMIN"); // fallback
                 }
 
                 var auths = roles.stream()
@@ -52,10 +54,30 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         .map(SimpleGrantedAuthority::new)
                         .toList();
 
+                // 🔑 Principal olarak email/sub set et
+                String email = claims.getSubject();
+
+                // Ek metadata
+                Map<String, Object> details = new HashMap<>();
+                if (claims.get("deptId") != null) {
+                    details.put("deptId", claims.get("deptId"));
+                }
+                if (claims.get("name") != null) {
+                    details.put("name", claims.get("name"));
+                }
+                if (claims.get("surname") != null) {
+                    details.put("surname", claims.get("surname"));
+                }
+
                 var authentication =
-                        new UsernamePasswordAuthenticationToken(claims.getSubject(), null, auths);
+                        new UsernamePasswordAuthenticationToken(email, null, auths);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
+
+                // Ek detayları ayrıca kaydet
+                authentication.setDetails(details);
+
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+
             } catch (Exception e) {
                 SecurityContextHolder.clearContext();
             }

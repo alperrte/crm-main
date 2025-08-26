@@ -1,4 +1,3 @@
-// src/main/java/com/example/person/service/impl/PersonServiceImpl.java
 package com.example.person.service.impl;
 
 import com.example.person.entity.PersonEntity;
@@ -77,5 +76,11 @@ public class PersonServiceImpl implements PersonService {
                     p.setDepartmentId(departmentId);
                     return personRepository.save(p);
                 });
+    }
+
+    // --- Yeni ekledik: email ile person bulma ---
+    @Override
+    public Optional<PersonEntity> getByEmail(String email) {
+        return personRepository.findByEmail(email);
     }
 }

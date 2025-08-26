@@ -1,4 +1,3 @@
-// src/main/java/com/example/user_service/service/impl/AuthServiceImpl.java
 package com.example.user_service.service.impl;
 
 import com.example.user_service.dto.request.LoginRequest;
@@ -27,20 +26,17 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     @Override
     public AuthResponse registerUser(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.email()))
-            throw new IllegalArgumentException("Kullanıcı adı zaten mevcut: " + request.email());
         if (userRepository.existsByEmail(request.email()))
             throw new IllegalArgumentException("Email zaten kayıtlı: " + request.email());
 
         if (request.password().getBytes().length > 72)
-            throw new IllegalArgumentException("password cannot be more than 72 bytes");
+            throw new IllegalArgumentException("Password cannot be more than 72 bytes");
 
-        // 🔹 Burayı güncelledik: name, surname, phone eklendi
         UserEntity user = UserEntity.builder()
-                .username(request.email()) // username'i email ile eşledik
+                .email(request.email())
+                .username(request.email())
                 .name(request.name())
                 .surname(request.surname())
-                .email(request.email())
                 .phone(request.phone())
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .role("USER")
@@ -53,20 +49,17 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     @Override
     public AuthResponse registerAdmin(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.email()))
-            throw new IllegalArgumentException("Kullanıcı adı zaten mevcut: " + request.email());
         if (userRepository.existsByEmail(request.email()))
             throw new IllegalArgumentException("Email zaten kayıtlı: " + request.email());
 
         if (request.password().getBytes().length > 72)
-            throw new IllegalArgumentException("password cannot be more than 72 bytes");
+            throw new IllegalArgumentException("Password cannot be more than 72 bytes");
 
-        // 🔹 Burayı güncelledik: name, surname, phone eklendi
         UserEntity user = UserEntity.builder()
+                .email(request.email())
                 .username(request.email())
                 .name(request.name())
                 .surname(request.surname())
-                .email(request.email())
                 .phone(request.phone())
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .role("ADMIN")
@@ -79,40 +72,42 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     @Override
     public AuthResponse registerPerson(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.email()))
-            throw new IllegalArgumentException("Kullanıcı adı zaten mevcut: " + request.email());
         if (userRepository.existsByEmail(request.email()))
             throw new IllegalArgumentException("Email zaten kayıtlı: " + request.email());
 
         if (request.password().getBytes().length > 72)
-            throw new IllegalArgumentException("password cannot be more than 72 bytes");
+            throw new IllegalArgumentException("Password cannot be more than 72 bytes");
 
-        // 🔹 Burayı güncelledik: name, surname, phone eklendi
         UserEntity user = UserEntity.builder()
+                .email(request.email())
                 .username(request.email())
                 .name(request.name())
                 .surname(request.surname())
-                .email(request.email())
                 .phone(request.phone())
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .role("PERSON")
                 .build();
 
+        // Burada user kaydediliyor
         userRepository.save(user);
+
+        // Eğer person-service çağrısı yapılıyorsa personId user'a set edilmeli
+        // user.setPersonId(personService.createPerson(...));
+
         return generateTokensAndSave(user);
     }
 
     @Transactional
     @Override
     public AuthResponse login(LoginRequest request) {
-        UserEntity user = userRepository.findByUsername(request.username())
+        UserEntity user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new IllegalArgumentException("Kullanıcı bulunamadı"));
 
         if (request.password().getBytes().length > 72)
-            throw new IllegalArgumentException("password cannot be more than 72 bytes");
+            throw new IllegalArgumentException("Password cannot be more than 72 bytes");
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash()))
-            throw new IllegalArgumentException("Kullanıcı adı veya şifre hatalı");
+            throw new IllegalArgumentException("Email veya şifre hatalı");
 
         return generateTokensAndSave(user);
     }
@@ -125,9 +120,9 @@ public class AuthServiceImpl implements AuthService {
         if (jwtUtil.isTokenInvalid(token))
             throw new IllegalArgumentException("Geçersiz veya süresi geçmiş refresh token");
 
-        String username = jwtUtil.extractUsername(token);
+        String email = jwtUtil.extractUsername(token);
 
-        UserEntity user = userRepository.findByUsername(username)
+        UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Kullanıcı bulunamadı"));
 
         if (user.getRefreshTokenHash() == null || user.getRefreshTokenExpires() == null)
@@ -152,9 +147,9 @@ public class AuthServiceImpl implements AuthService {
 
         return new AuthResponse(
                 user.getId(),
-                user.getUsername(),
+                user.getEmail(),
                 user.getRole(),
-                user.getPersonId(),
+                user.getPersonId(),   // ✅ buradan dönüyor
                 accessToken,
                 refreshToken
         );

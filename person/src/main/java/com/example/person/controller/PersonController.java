@@ -6,6 +6,7 @@ import com.example.person.entity.PersonEntity;
 import com.example.person.service.PersonService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -19,6 +20,17 @@ import java.util.stream.Collectors;
 public class PersonController {
 
     private final PersonService personService;
+
+    // ✅ Giriş yapan PERSON’un bilgilerini döner (frontend burayı çağıracak)
+    @GetMapping("/me")
+    public ResponseEntity<PersonResponseDto> getMe(Authentication auth) {
+        // JwtAuthFilter içinde principal olarak email set edilmiş olmalı
+        String email = auth.getName();
+
+        Optional<PersonEntity> opt = personService.getByEmail(email);
+        return opt.map(e -> ResponseEntity.ok(toResponse(e)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
 
     @GetMapping
     public ResponseEntity<List<PersonResponseDto>> getAllPersons() {
@@ -38,7 +50,7 @@ public class PersonController {
     @PostMapping
     public ResponseEntity<PersonResponseDto> createPerson(@RequestBody PersonRequestDto req) {
         PersonEntity entity = toEntity(req);
-        entity.setActive(true); // ✅ EKLENDİ
+        entity.setActive(true);
         PersonEntity saved = personService.createPerson(entity);
         return ResponseEntity.created(URI.create("/api/persons/" + saved.getId()))
                 .body(toResponse(saved));
@@ -66,9 +78,10 @@ public class PersonController {
                 .surname(r.getSurname())
                 .email(r.getEmail())
                 .phone(r.getPhone())
-                .departmentId(r.getDepartmentId()) // ✅ null olabilir
+                .departmentId(r.getDepartmentId()) // null olabilir
                 .build();
     }
+
     private PersonResponseDto toResponse(PersonEntity e) {
         return PersonResponseDto.builder()
                 .id(e.getId())

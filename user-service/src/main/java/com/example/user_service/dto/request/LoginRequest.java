@@ -1,12 +1,9 @@
 package com.example.user_service.dto.request;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-/**
- * Login isteği için DTO.
- * - username + password
- */
 public record LoginRequest(
-        @NotBlank String username,
+        @NotBlank @Email String email,
         @NotBlank String password
 ) {}

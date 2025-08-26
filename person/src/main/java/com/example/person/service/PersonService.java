@@ -1,4 +1,3 @@
-// src/main/java/com/example/person/service/PersonService.java
 package com.example.person.service;
 
 import com.example.person.entity.PersonEntity;
@@ -18,4 +17,7 @@ public interface PersonService {
     List<PersonEntity> getUnassignedPersons();
     List<PersonEntity> getPersonsByDepartment(Long departmentId);
     Optional<PersonEntity> assignDepartment(Long personId, Long departmentId);
+
+    // --- Yeni ekledik: email ile person bul ---
+    Optional<PersonEntity> getByEmail(String email);
 }

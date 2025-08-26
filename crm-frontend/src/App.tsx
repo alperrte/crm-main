@@ -6,8 +6,10 @@ import RegisterPage from "./pages/RegisterPage";
 import AdminPanel from "./admin/AdminPanel";
 import DepartmentPage from "./pages/DepartmentPage";
 import RolesPage from "./pages/RolesPage";
-import PersonPage from "./pages/PersonPage";   // ✅ yeni import
+import PersonPage from "./pages/PersonPage";
+import UserPage from "./pages/UserPage";
 import PublicTicketForm from "./pages/PublicTicketForm";
+import CreateTicketPage from "./pages/CreateTicketPage";   // ✅ yeni eklendi
 
 // Basit koruma: token yoksa login'e at
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -52,10 +54,30 @@ function App() {
                     }
                 />
                 <Route
-                    path="/admin/persons"   // ✅ yeni route
+                    path="/admin/persons"
                     element={
                         <RequireAuth>
                             <PersonPage />
+                        </RequireAuth>
+                    }
+                />
+
+                {/* ✅ User tarafı */}
+                <Route
+                    path="/user"
+                    element={
+                        <RequireAuth>
+                            <UserPage />
+                        </RequireAuth>
+                    }
+                />
+
+                {/* ✅ Yeni ticket oluşturma sayfası */}
+                <Route
+                    path="/create-ticket"
+                    element={
+                        <RequireAuth>
+                            <CreateTicketPage />
                         </RequireAuth>
                     }
                 />

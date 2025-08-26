@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import PublicTicketForm from "../pages/PublicTicketForm"; // müşteri ticket formu
 
 const LoginPage: React.FC = () => {
-    const [form, setForm] = useState({ username: "", password: "" });
+    const [form, setForm] = useState({ email: "", password: "" });
     const navigate = useNavigate();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -16,11 +16,15 @@ const LoginPage: React.FC = () => {
 
         try {
             const response = await userApi.post("/api/auth/login", {
-                username: form.username,
+                email: form.email,
                 password: form.password,
             });
 
-            const token = response.data.token || response.data.accessToken || response.data.jwt;
+            const token =
+                response.data.token ||
+                response.data.accessToken ||
+                response.data.jwt;
+
             if (!token) {
                 alert("Token alınamadı!");
                 console.error("Login response:", response.data);
@@ -34,11 +38,13 @@ const LoginPage: React.FC = () => {
 
             try {
                 const payload = JSON.parse(atob(token.split(".")[1]));
-                const role = payload.role;
+                const role = payload.role || payload.roles?.[0];
                 console.log("Decoded Role:", role);
 
                 if (role === "ADMIN") {
                     navigate("/admin");
+                } else if (role === "PERSON") {
+                    navigate("/user");
                 } else {
                     navigate("/dashboard");
                 }
@@ -46,7 +52,7 @@ const LoginPage: React.FC = () => {
                 console.error("Token decode edilemedi:", decodeError);
             }
         } catch (error: any) {
-            alert("Giriş yapılamadı! Kullanıcı adı veya parola hatalı.");
+            alert("Giriş yapılamadı! E-posta veya parola hatalı.");
             console.error(error.response?.data || error.message);
         }
     };
@@ -62,19 +68,24 @@ const LoginPage: React.FC = () => {
 
             {/* 🔹 Sağ taraf: Login Form */}
             <div className="flex items-center justify-center p-6">
-                <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-md w-96">
+                <form
+                    onSubmit={handleSubmit}
+                    className="bg-white p-6 rounded-xl shadow-md w-96"
+                >
                     <div className="flex justify-center mb-4">
                         <div className="w-16 h-16 bg-blue-600 text-white flex items-center justify-center rounded-full text-2xl font-bold">
                             G
                         </div>
                     </div>
 
-                    <h2 className="text-2xl font-bold mb-4 text-center">Tekrar hoşgeldiniz</h2>
+                    <h2 className="text-2xl font-bold mb-4 text-center">
+                        Tekrar hoşgeldiniz
+                    </h2>
 
                     <input
-                        type="text"
-                        name="username"
-                        placeholder="Kullanıcı Adı"
+                        type="email"
+                        name="email"
+                        placeholder="E-posta"
                         onChange={handleChange}
                         className="w-full mb-3 p-2 border rounded"
                     />
@@ -87,7 +98,10 @@ const LoginPage: React.FC = () => {
                         className="w-full mb-3 p-2 border rounded"
                     />
 
-                    <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded">
+                    <button
+                        type="submit"
+                        className="w-full bg-blue-600 text-white p-2 rounded"
+                    >
                         Giriş
                     </button>
 

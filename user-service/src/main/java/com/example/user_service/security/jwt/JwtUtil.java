@@ -11,13 +11,14 @@ import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
  * JWT üretim / doğrulama yardımcı sınıfı.
  * - HS256 imza
  * - subject: username
- * - claim'ler: userId, role
+ * - claim'ler: userId, role, personId
  */
 @Component
 public class JwtUtil {
@@ -28,17 +29,14 @@ public class JwtUtil {
     @Value("${JWT_ISSUER:user-service}")
     private String issuer;
 
-    @Value("${JWT_EXPIRATION:3600}") // 1 saat
+    @Value("${JWT_EXPIRATION:3600}") // saniye (1 saat)
     private long accessTtlSeconds;
 
     @Getter
-    @Value("${JWT_REFRESH_EXPIRATION:604800}") // 7 gün
+    @Value("${JWT_REFRESH_EXPIRATION:604800}") // saniye (7 gün)
     private long refreshTtlSeconds;
 
-    /**
-     * Anahtar üretimi (HS256)
-     * Secret 32 karakterden kısa ise otomatik olarak doldurulur.
-     */
+    /** Anahtar üretimi (HS256) */
     private Key key() {
         String s = secret;
         if (s == null || s.length() < 32) {
@@ -50,11 +48,16 @@ public class JwtUtil {
     /** Access token üretir */
     public String generateAccessToken(UserEntity user) {
         Instant now = Instant.now();
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", user.getId());
+        claims.put("role", user.getRole());
+        if (user.getPersonId() != null) {
+            claims.put("personId", user.getPersonId()); // ✅ eklendi
+        }
+
         return Jwts.builder()
-                .setClaims(Map.of(
-                        "userId", user.getId(),
-                        "role", user.getRole()
-                ))
+                .setClaims(claims)
                 .setSubject(user.getUsername())
                 .setIssuer(issuer)
                 .setIssuedAt(Date.from(now))
@@ -86,7 +89,7 @@ public class JwtUtil {
         }
     }
 
-    /** Token geçersiz mi? (Daha okunaklı ters kontrol için eklendi) */
+    /** Token geçersiz mi? */
     public boolean isTokenInvalid(String token) {
         return !isTokenValid(token);
     }
@@ -102,14 +105,20 @@ public class JwtUtil {
         return role != null ? role.toString() : null;
     }
 
-    /** JWT parser oluşturur */
+    /** Token'dan personId bilgisini döndürür */
+    public Long extractPersonId(String token) {
+        Object pid = getAllClaims(token).get("personId");
+        return pid != null ? Long.parseLong(pid.toString()) : null;
+    }
+
+    /** JWT parser */
     private JwtParser parser() {
         return Jwts.parserBuilder()
                 .setSigningKey(key())
                 .build();
     }
 
-    /** Token içindeki tüm claim’leri döndürür */
+    /** Tüm claim’ler */
     private Claims getAllClaims(String token) {
         return parser().parseClaimsJws(token).getBody();
     }
