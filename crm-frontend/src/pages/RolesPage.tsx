@@ -1,5 +1,7 @@
+// src/pages/RolesPage.tsx
 import React, { useEffect, useState, useRef } from "react";
 import api from "../api/userApi";
+import departmentApi, { Department } from "../api/departmentApi"; // ✅ eklendi
 import { Link } from "react-router-dom";
 
 interface User {
@@ -9,11 +11,13 @@ interface User {
     email: string;
     phone: string;
     role: string | null;
-    departmentName?: string | null;
+    departmentId?: number | null;      // ✅ eklendi
+    departmentName?: string | null;    // ✅ zaten vardı
 }
 
 const RolesPage: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
+    const [departments, setDepartments] = useState<Department[]>([]); // ✅ departman listesi
     const [loading, setLoading] = useState(false);
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -29,6 +33,7 @@ const RolesPage: React.FC = () => {
 
     useEffect(() => {
         fetchUsers();
+        fetchDepartments(); // ✅ departmanları da yükle
     }, []);
 
     const fetchUsers = async () => {
@@ -42,6 +47,23 @@ const RolesPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const fetchDepartments = async () => {
+        try {
+            const res = await departmentApi.get("/api/departments");
+            setDepartments(res.data);
+        } catch (err) {
+            console.error("❌ Departmanlar alınamadı:", err);
+        }
+    };
+
+    // ✅ Departman ismini ID’den bul
+    const getDepartmentName = (id: number | null | undefined, fallback?: string | null) => {
+        if (fallback) return fallback; // backend zaten isim dönerse
+        if (!id) return "—";
+        const dep = departments.find((d) => d.id === id);
+        return dep ? dep.name : "—";
     };
 
     const updateRole = async (id: number, role: string) => {
@@ -160,7 +182,8 @@ const RolesPage: React.FC = () => {
                                         <td className="px-6 py-4">{u.surname}</td>
                                         <td className="px-6 py-4">{u.email}</td>
                                         <td className="px-6 py-4">{u.phone}</td>
-                                        <td className="px-6 py-4">{u.departmentName ?? "—"}</td>
+                                        {/* ✅ Departman adı veya fallback */}
+                                        <td className="px-6 py-4">{getDepartmentName(u.departmentId, u.departmentName)}</td>
                                         <td className="px-6 py-4">{roleLabel(u.role)}</td>
                                     </tr>
                                 ))}

@@ -52,6 +52,13 @@ const CreateUserPage: React.FC = () => {
         }
     };
 
+    // ✅ Departman ismini ID'ye göre bul
+    const getDepartmentName = (id: number | null | undefined) => {
+        if (!id) return "—";
+        const dep = departments.find((d) => d.id === id);
+        return dep ? dep.name : `ID: ${id}`;
+    };
+
     // ✅ Yeni kişi kaydı
     const handleSubmit = async () => {
         try {
@@ -177,8 +184,9 @@ const CreateUserPage: React.FC = () => {
                                     <td className="px-6 py-4">{p.surname}</td>
                                     <td className="px-6 py-4">{p.email}</td>
                                     <td className="px-6 py-4">{p.phone}</td>
+                                    {/* ✅ Burada artık ID değil departman adı gösterilecek */}
                                     <td className="px-6 py-4">
-                                        {p.departmentId ? `ID: ${p.departmentId}` : "—"}
+                                        {getDepartmentName(p.departmentId)}
                                     </td>
                                 </tr>
                             ))}
