@@ -64,6 +64,7 @@ export interface DeptTicket {
     // 🔹 yeni alanlar
     status?: string;
     departmentId?: number;
+    employee: boolean; // true = personel açtı, false = müşteri açtı
 }
 
 export interface InternalTicketRequest {
@@ -128,7 +129,7 @@ export const getDeptTickets = async (deptId: number): Promise<DeptTicket[]> => {
 
 // Ticket üstlen
 export const takeTicket = async (ticketId: number, deptId: number): Promise<DeptTicket> => {
-    const res = await ticketApi.put(`/api/departments/${ticketId}/take?deptId=${deptId}`);
+    const res = await ticketApi.put(`/api/departments/tickets/${ticketId}/take?deptId=${deptId}`);
     return res.data;
 };
 
@@ -139,14 +140,14 @@ export const reassignTicket = async (
     newDeptId: number
 ): Promise<DeptTicket> => {
     const res = await ticketApi.put(
-        `/api/departments/${ticketId}/reassign/${newDeptId}?fromDeptId=${fromDeptId}`
+        `/api/departments/tickets/${ticketId}/reassign/${newDeptId}?fromDeptId=${fromDeptId}`
     );
     return res.data;
 };
 
 // Ticket kapat
 export const closeTicket = async (ticketId: number): Promise<DeptTicket> => {
-    const res = await ticketApi.put(`/api/departments/${ticketId}/close`);
+    const res = await ticketApi.put(`/api/departments/tickets/${ticketId}/close`);
     return res.data;
 };
 

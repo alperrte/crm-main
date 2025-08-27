@@ -11,8 +11,14 @@ const departmentApi = axios.create({
     headers: { "Content-Type": "application/json" },
 });
 
+const getToken = () => {
+    const raw = localStorage.getItem("token");
+    if (!raw) return null;
+    return raw.startsWith('"') ? JSON.parse(raw) : raw;
+};
+
 departmentApi.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
+    const token = getToken();
     if (token) {
         config.headers = config.headers ?? {};
         config.headers.Authorization = `Bearer ${token}`;
@@ -23,12 +29,10 @@ departmentApi.interceptors.request.use((config) => {
 // ✅ Departmanları getir (normalize ederek)
 export async function getAllDepartments(): Promise<Department[]> {
     const { data } = await departmentApi.get("/api/departments");
-    // Backend alan adları değişken olabilir; normalize edelim
     const mapped: Department[] = (Array.isArray(data) ? data : []).map((d: any) => ({
         id: d.id ?? d.departmentId ?? d.department_id,
-        name: d.name ?? d.displayName ?? d.departmentName,
-        parentId:
-            d.parentId ?? d.parent_department_id ?? d.parentDepartmentId ?? null,
+        name: d.name ?? d.displayName ?? d.departmentName ?? String(d.id ?? ""),
+        parentId: d.parentId ?? d.parent_department_id ?? d.parentDepartmentId ?? null,
     }));
     return mapped;
 }

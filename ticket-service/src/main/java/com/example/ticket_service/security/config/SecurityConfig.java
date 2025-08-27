@@ -26,22 +26,25 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // preflight
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         // herkese açık
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                         .requestMatchers("/api/tickets/public/**").permitAll()
 
-                        // admin uçları
+                        // admin uçları → sadece ROLE_ADMIN
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // departman uçları
+                        // departman uçları (PERSON + ADMIN)
                         .requestMatchers("/api/departments/**").hasAnyRole("ADMIN", "PERSON")
 
-                        // ✅ ticket oluşturma → USER, PERSON, ADMIN
+                        // ticket oluşturma → USER, PERSON, ADMIN
                         .requestMatchers(HttpMethod.POST, "/api/tickets/create")
                         .hasAnyRole("USER", "PERSON", "ADMIN")
 
-                        // ✅ ticket listeleme & diğer ticket işlemleri → sadece PERSON ve ADMIN
+                        // ticket listeleme & diğer ticket işlemleri → PERSON | ADMIN
                         .requestMatchers("/api/tickets/**").hasAnyRole("PERSON", "ADMIN")
 
                         // geri kalan her şey authentication ister

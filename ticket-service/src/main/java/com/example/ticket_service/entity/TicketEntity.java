@@ -32,7 +32,7 @@ public class TicketEntity {
     private LocalDateTime closedDate;
 
     @Column(name = "is_employee", nullable = false)
-    private Boolean employee; // public için false
+    private Boolean employee = false; // public için false
 
     // Creator: Customer (public başvuru)
     @ManyToOne(fetch = FetchType.LAZY)
