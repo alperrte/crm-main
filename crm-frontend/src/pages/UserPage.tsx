@@ -59,10 +59,27 @@ const UserPage: React.FC = () => {
         setTransferTicketId(null);
     };
     const confirmTransfer = async () => {
-        if (!transferTicketId || !deptId || !selectedDeptId) return;
-        await reassignTicket(transferTicketId, deptId, Number(selectedDeptId));
-        closeTransfer();
-        fetchTickets();
+        if (!transferTicketId || !deptId || !selectedDeptId) {
+            console.warn("⚠️ Devretmek için gerekli bilgiler eksik:", {
+                transferTicketId, deptId, selectedDeptId,
+            });
+            return;
+        }
+
+        console.log("🔄 Devretme isteği gönderiliyor:", {
+            ticketId: transferTicketId,
+            fromDeptId: deptId,
+            newDeptId: selectedDeptId,
+        });
+
+        try {
+            await reassignTicket(transferTicketId, deptId, Number(selectedDeptId));
+            console.log("✅ Devretme başarılı!");
+            closeTransfer();
+            fetchTickets();
+        } catch (err) {
+            console.error("❌ Devretme hatası:", err);
+        }
     };
 
     // Ticketları getir
@@ -99,13 +116,16 @@ const UserPage: React.FC = () => {
         }
     };
 
-    // İlk açılış → token decode + profil çekme
+    // İlk açılış → deptId alma
     useEffect(() => {
         const raw = localStorage.getItem("token");
+        let deptFromToken: number | null = null;
+
         if (raw) {
             try {
                 const token = raw.startsWith('"') ? JSON.parse(raw) : raw;
                 const payload = JSON.parse(atob(token.split(".")[1]));
+
                 setUserInfo({
                     personId: payload.personId,
                     name: payload.name,
@@ -113,25 +133,35 @@ const UserPage: React.FC = () => {
                     email: payload.sub || payload.email,
                     role: payload.role || payload.roles?.[0],
                 });
+
                 const claim = payload.deptId || payload.departmentId || payload.department_id;
-                if (claim) setDeptId(Number(claim));
+                if (claim) {
+                    deptFromToken = Number(claim);
+                    setDeptId(deptFromToken);
+                    localStorage.setItem("deptId", String(deptFromToken));
+                }
             } catch (err) {
                 console.error("Token decode hatası:", err);
             }
         }
 
-        const ls = localStorage.getItem("deptId");
-        if (!ls) {
-            getMyProfile()
-                .then((me: MyProfile) => {
-                    const d = me.department?.id ?? me.departmentId;
-                    if (d) setDeptId(d);
-                    if (me.department?.name) setDepartmentName(me.department.name);
-                    setUserInfo((prev) => ({ ...prev, personId: me.id }));
-                })
-                .catch((e) => console.warn("Profil alınamadı:", e));
-        } else {
-            setDeptId(parseInt(ls, 10));
+        if (!deptFromToken) {
+            const ls = localStorage.getItem("deptId");
+            if (ls) {
+                setDeptId(parseInt(ls, 10));
+            } else {
+                getMyProfile()
+                    .then((me: MyProfile) => {
+                        const d = me.department?.id ?? me.departmentId;
+                        if (d) {
+                            setDeptId(d);
+                            localStorage.setItem("deptId", String(d));
+                        }
+                        if (me.department?.name) setDepartmentName(me.department.name);
+                        setUserInfo((prev) => ({ ...prev, personId: me.id }));
+                    })
+                    .catch((e) => console.warn("Profil alınamadı:", e));
+            }
         }
     }, []);
 
@@ -224,7 +254,6 @@ const UserPage: React.FC = () => {
                                             </button>
                                         </>
                                     )}
-                                    {/* Kapattıklarımda işlem yok */}
                                 </td>
                                 <td className="p-3">{t.id}</td>
                                 <td className="p-3">{t.issue}</td>

@@ -42,7 +42,7 @@ public class DepartmentTicketController {
     @PreAuthorize("hasAnyRole('PERSON','ADMIN')")
     @PutMapping("/tickets/{ticketId}/take")
     public ResponseEntity<TicketResponse> take(@PathVariable Long ticketId,
-                                               @RequestParam Long deptId) {
+                                               @RequestParam(name = "deptId") Long deptId) {
         logAuth("take ticketId=" + ticketId + ", deptId=" + deptId);
         return ResponseEntity.ok(ticketService.takeTicket(ticketId, deptId));
     }
@@ -51,7 +51,7 @@ public class DepartmentTicketController {
     @PreAuthorize("hasAnyRole('PERSON','ADMIN')")
     @PutMapping("/tickets/{ticketId}/reassign/{newDeptId}")
     public ResponseEntity<TicketResponse> reassign(@PathVariable Long ticketId,
-                                                   @RequestParam Long fromDeptId,
+                                                   @RequestParam(name = "fromDeptId") Long fromDeptId,
                                                    @PathVariable Long newDeptId) {
         logAuth("reassign ticketId=" + ticketId + ", fromDeptId=" + fromDeptId + ", newDeptId=" + newDeptId);
         return ResponseEntity.ok(ticketService.reassignTicket(ticketId, fromDeptId, newDeptId));
@@ -77,21 +77,21 @@ public class DepartmentTicketController {
     // === Kullanıcının kendi listeleri ===
     @PreAuthorize("hasAnyRole('PERSON','ADMIN')")
     @GetMapping("/me/assigned")
-    public ResponseEntity<List<TicketResponse>> myAssigned(@RequestParam Long personId) {
+    public ResponseEntity<List<TicketResponse>> myAssigned(@RequestParam(name = "personId") Long personId) {
         logAuth("myAssigned personId=" + personId);
         return ResponseEntity.ok(ticketService.listMyAssigned(personId));
     }
 
     @PreAuthorize("hasAnyRole('PERSON','ADMIN')")
     @GetMapping("/me/closed")
-    public ResponseEntity<List<TicketResponse>> myClosed(@RequestParam Long personId) {
+    public ResponseEntity<List<TicketResponse>> myClosed(@RequestParam(name = "personId") Long personId) {
         logAuth("myClosed personId=" + personId);
         return ResponseEntity.ok(ticketService.listMyClosed(personId));
     }
 
     @PreAuthorize("hasAnyRole('PERSON','ADMIN')")
     @GetMapping("/me/transferred")
-    public ResponseEntity<List<TicketResponse>> myTransferred(@RequestParam Long personId) {
+    public ResponseEntity<List<TicketResponse>> myTransferred(@RequestParam(name = "personId") Long personId) {
         logAuth("myTransferred personId=" + personId);
         return ResponseEntity.ok(ticketService.listMyTransferred(personId));
     }

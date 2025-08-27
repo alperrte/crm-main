@@ -17,9 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -136,26 +134,32 @@ public class TicketImpl implements TicketService {
     @Override
     @Transactional
     public TicketResponse reassignTicket(Long ticketId, Long fromDeptId, Long toDeptId) {
-        TicketAssignmentEntity oldAssign = assignmentRepository.findForUpdate(ticketId, fromDeptId)
-                .orElseThrow(() -> new IllegalArgumentException("Ticket bu departmana atanmadı"));
+        // 🔹 1. En güncel assignment'ı bul
+        TicketAssignmentEntity oldAssign = assignmentRepository.findByTicketId(ticketId).stream()
+                .max(Comparator.comparing(
+                        a -> Optional.ofNullable(a.getAssignedDate()).orElse(LocalDateTime.MIN)))
+                .orElseThrow(() -> new IllegalArgumentException("Ticket için assignment bulunamadı"));
 
+        // 🔹 2. Aktif kullanıcı (devreden kişi)
         Long actor = Optional.ofNullable(currentPersonId())
                 .orElseThrow(() -> new IllegalStateException("Devreden personId bulunamadı!"));
 
-        log.info("🎯 reassignTicket: ticketId={}, fromDeptId={}, toDeptId={}, eski status={}, eski personId={}",
-                ticketId, fromDeptId, toDeptId, oldAssign.getStatus(), oldAssign.getPersonId());
+        log.info("🎯 reassignTicket: ticketId={}, fromDeptId={}, toDeptId={}, eski status={}, eski personId={}, actor={}",
+                ticketId, fromDeptId, toDeptId, oldAssign.getStatus(), oldAssign.getPersonId(), actor);
 
-        // devreden kişi set ediliyor
+        // 🔹 3. Kontrol: ya departmanId eşleşmeli ya da zaten üstlenilmiş olmalı
+        if (!Objects.equals(oldAssign.getDepartmentId(), fromDeptId) && oldAssign.getPersonId() == null) {
+            throw new IllegalArgumentException("Ticket bu departmana veya kişiye ait değil");
+        }
+
+        // 🔹 4. Eski assignment → TRANSFERRED
         oldAssign.setPersonId(actor);
         oldAssign.setStatus("TRANSFERRED");
         oldAssign.setCompletedDate(LocalDateTime.now());
-
-        // 🔹 constraint gereği: TRANSFERRED assignment'ta departmentId NULL olmalı
-        oldAssign.setDepartmentId(null);
-
+        oldAssign.setDepartmentId(null); // constraint uyumu
         assignmentRepository.save(oldAssign);
 
-        // yeni assignment: sadece departmanId dolu, personId boş → constraint uyumlu
+        // 🔹 5. Yeni assignment → sadece departmentId dolu
         TicketAssignmentEntity newAssign = TicketAssignmentEntity.builder()
                 .ticket(oldAssign.getTicket())
                 .departmentId(toDeptId)
@@ -274,7 +278,7 @@ public class TicketImpl implements TicketService {
                 .status(assignment != null ? assignment.getStatus() : null)
                 .departmentId(assignment != null ? assignment.getDepartmentId() : null)
                 .assigneePersonId(assignment != null ? assignment.getPersonId() : null)
-                .employee(t.getEmployee()) // 🔹 burası eklendi
+                .employee(t.getEmployee()) // 🔹 eklendi
                 .build();
     }
 }
