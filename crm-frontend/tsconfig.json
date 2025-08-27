@@ -18,9 +18,11 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "types": ["react", "react-dom", "node"]   // ✅ react-icons için node eklendi
   },
   "include": [
-    "src"
+    "src",
+    "src/types"   // ✅ özel tip dosyaları da dahil
   ]
 }

@@ -1,7 +1,6 @@
 // src/pages/RolesPage.tsx
 import React, { useEffect, useState, useRef } from "react";
 import api from "../api/userApi";
-import departmentApi, { Department } from "../api/departmentApi"; // ✅ eklendi
 import { Link } from "react-router-dom";
 
 interface User {
@@ -11,13 +10,10 @@ interface User {
     email: string;
     phone: string;
     role: string | null;
-    departmentId?: number | null;      // ✅ eklendi
-    departmentName?: string | null;    // ✅ zaten vardı
 }
 
 const RolesPage: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
-    const [departments, setDepartments] = useState<Department[]>([]); // ✅ departman listesi
     const [loading, setLoading] = useState(false);
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -33,7 +29,6 @@ const RolesPage: React.FC = () => {
 
     useEffect(() => {
         fetchUsers();
-        fetchDepartments(); // ✅ departmanları da yükle
     }, []);
 
     const fetchUsers = async () => {
@@ -47,23 +42,6 @@ const RolesPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    };
-
-    const fetchDepartments = async () => {
-        try {
-            const res = await departmentApi.get("/api/departments");
-            setDepartments(res.data);
-        } catch (err) {
-            console.error("❌ Departmanlar alınamadı:", err);
-        }
-    };
-
-    // ✅ Departman ismini ID’den bul
-    const getDepartmentName = (id: number | null | undefined, fallback?: string | null) => {
-        if (fallback) return fallback; // backend zaten isim dönerse
-        if (!id) return "—";
-        const dep = departments.find((d) => d.id === id);
-        return dep ? dep.name : "—";
     };
 
     const updateRole = async (id: number, role: string) => {
@@ -122,19 +100,19 @@ const RolesPage: React.FC = () => {
                             <option value="ADMIN">Yöneticiler</option>
                         </select>
 
-                        {/* Kontroller Dropdown */}
+                        {/* Paneller Dropdown */}
                         <div className="relative">
                             <button
                                 onClick={() => setMenuOpen(!menuOpen)}
                                 className="px-5 py-2 rounded-full bg-white/20 border border-white/30 hover:bg-white/30 transition shadow"
                             >
-                                Kontroller ▼
+                                Paneller ▼
                             </button>
                             {menuOpen && (
                                 <div className="absolute right-0 mt-2 w-56 bg-white text-gray-800 rounded-lg shadow-lg overflow-hidden z-20">
-                                    <Link to="/admin" className="block px-4 py-2 hover:bg-gray-100" onClick={() => setMenuOpen(false)}>Admin Panel</Link>
-                                    <Link to="/admin/departments" className="block px-4 py-2 hover:bg-gray-100" onClick={() => setMenuOpen(false)}>Departman Kontrolleri</Link>
-                                    <Link to="/admin/create-user" className="block px-4 py-2 hover:bg-gray-100" onClick={() => setMenuOpen(false)}>Kullanıcı Oluştur</Link>
+                                    <Link to="/admin" className="block px-4 py-2 hover:bg-gray-100" onClick={() => setMenuOpen(false)}>Admin Paneli</Link>
+                                    <Link to="/admin/departments" className="block px-4 py-2 hover:bg-gray-100" onClick={() => setMenuOpen(false)}>Departman Kontrol Paneli</Link>
+                                    <Link to="/admin/create-user" className="block px-4 py-2 hover:bg-gray-100" onClick={() => setMenuOpen(false)}>Kişi Oluşturma Paneli</Link>
                                 </div>
                             )}
                         </div>
@@ -155,35 +133,66 @@ const RolesPage: React.FC = () => {
                                     <th className="px-6 py-3">Soyad</th>
                                     <th className="px-6 py-3">Email</th>
                                     <th className="px-6 py-3">Telefon</th>
-                                    <th className="px-6 py-3">Departman</th>
                                     <th className="px-6 py-3">Rol</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 {currentUsers.map((u) => (
                                     <tr key={u.id} className="hover:bg-gray-50 relative">
-                                        <td className="px-6 py-4">
-                                            <button
-                                                ref={(el) => { buttonRefs.current[u.id] = el; }}
-                                                onClick={() => setOpenDropdown(openDropdown === u.id ? null : u.id)}
-                                                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-full font-semibold"
-                                            >
-                                                İşlemler ▼
-                                            </button>
-                                            {openDropdown === u.id && (
-                                                <div className="absolute mt-2 bg-white shadow-lg rounded-lg z-50">
-                                                    <button onClick={() => setConfirmAction({ userId: u.id, role: "USER" })} className="block px-4 py-2 hover:bg-gray-100 w-full text-left">Genel Kullanıcı Rolü Ver</button>
-                                                    <button onClick={() => setConfirmAction({ userId: u.id, role: "PERSON" })} className="block px-4 py-2 hover:bg-gray-100 w-full text-left">Yetkili Çalışan Rolü Ver</button>
-                                                    <button onClick={() => setConfirmAction({ userId: u.id, role: "ADMIN" })} className="block px-4 py-2 hover:bg-gray-100 w-full text-left">Yönetici Rolü Ver</button>
-                                                </div>
-                                            )}
+                                        <td className="px-6 py-4 relative">
+                                            <div className="relative inline-block text-left">
+                                                <button
+                                                    ref={(el) => { buttonRefs.current[u.id] = el; }}
+                                                    onClick={() => setOpenDropdown(openDropdown === u.id ? null : u.id)}
+                                                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow font-medium transition"
+                                                >
+                                                    ⚙️ İşlemler ▼
+                                                </button>
+
+                                                {openDropdown === u.id && (
+                                                    <div className="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 z-50">
+                                                        <div className="py-1">
+                                                            {/* Rol Ver ana menü */}
+                                                            <div className="group relative">
+                                                                <button
+                                                                    className="flex justify-between items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700"
+                                                                >
+                                                                    🎭 Rol Ver
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                                    </svg>
+                                                                </button>
+                                                                {/* Alt menü */}
+                                                                <div className="absolute top-0 left-full ml-1 w-56 bg-white rounded-lg shadow-lg hidden group-hover:block">
+                                                                    <button
+                                                                        onClick={() => setConfirmAction({ userId: u.id, role: "USER" })}
+                                                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700"
+                                                                    >
+                                                                        👤 Genel Kullanıcı
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => setConfirmAction({ userId: u.id, role: "PERSON" })}
+                                                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700"
+                                                                    >
+                                                                        💼 Yetkili Çalışan
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => setConfirmAction({ userId: u.id, role: "ADMIN" })}
+                                                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700"
+                                                                    >
+                                                                        🛡️ Yönetici
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4">{u.name}</td>
                                         <td className="px-6 py-4">{u.surname}</td>
                                         <td className="px-6 py-4">{u.email}</td>
                                         <td className="px-6 py-4">{u.phone}</td>
-                                        {/* ✅ Departman adı veya fallback */}
-                                        <td className="px-6 py-4">{getDepartmentName(u.departmentId, u.departmentName)}</td>
                                         <td className="px-6 py-4">{roleLabel(u.role)}</td>
                                     </tr>
                                 ))}

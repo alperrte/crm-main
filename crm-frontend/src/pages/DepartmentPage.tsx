@@ -22,14 +22,13 @@ const DepartmentsPage: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
-    const [form, setForm] = useState<Omit<Department, "id" | "children">>(
-        emptyForm
-    );
+    const [form, setForm] = useState<Omit<Department, "id" | "children">>(emptyForm);
 
     const [menuOpen, setMenuOpen] = useState(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [expanded, setExpanded] = useState<Record<number, boolean>>({});
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
+    const [dropdownDirection, setDropdownDirection] = useState<Record<number, "up" | "down">>({});
 
     const fetchAll = async () => {
         setLoading(true);
@@ -76,6 +75,16 @@ const DepartmentsPage: React.FC = () => {
         setShowForm(true);
     };
 
+    const openSubCreate = (parentId: number) => {
+        setIsEdit(false);
+        setEditId(null);
+        setForm({
+            name: "",
+            parentDepartmentId: parentId,
+        });
+        setShowForm(true);
+    };
+
     const closeForm = () => setShowForm(false);
 
     const submitForm = async (e: React.FormEvent) => {
@@ -104,32 +113,62 @@ const DepartmentsPage: React.FC = () => {
         setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
     };
 
+    const toggleDropdown = (id: number, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (openDropdown === id) {
+            setOpenDropdown(null);
+            return;
+        }
+
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+
+        setDropdownDirection((prev) => ({
+            ...prev,
+            [id]: spaceBelow < 200 && spaceAbove > spaceBelow ? "up" : "down",
+        }));
+
+        setOpenDropdown(id);
+    };
+
     // ✅ Recursive render
     const renderDepartment = (dep: Department, parentName: string | null = null, level = 0) => (
         <React.Fragment key={dep.id}>
             <tr className={level > 0 ? "bg-gray-50" : ""}>
-                {/* İşlemler en solda */}
                 <td className="px-6 py-4 relative">
                     <button
-                        onClick={() => setOpenDropdown(openDropdown === dep.id ? null : dep.id)}
+                        onClick={(e) => toggleDropdown(dep.id, e)}
                         className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-1 rounded-full font-semibold text-sm"
                     >
-                        İşlemler ▼
+                        ⚙️ İşlemler ▼
                     </button>
 
                     {openDropdown === dep.id && (
-                        <div className="absolute mt-2 bg-white shadow-lg rounded-lg z-50">
+                        <div
+                            className={`absolute w-56 bg-white shadow-lg rounded-lg z-50 max-h-48 overflow-y-auto ${
+                                dropdownDirection[dep.id] === "up"
+                                    ? "bottom-full mb-2"
+                                    : "mt-2 top-full"
+                            }`}
+                        >
                             <button
                                 onClick={() => openEdit(dep)}
                                 className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
                             >
-                                Güncelle
+                                🔄 Güncelle
+                            </button>
+                            <button
+                                onClick={() => openSubCreate(dep.id)}
+                                className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
+                            >
+                                ➕ Alt Departman Ekle
                             </button>
                             <button
                                 onClick={() => setConfirmDeleteId(dep.id)}
                                 className="block px-4 py-2 text-red-600 hover:bg-red-50 w-full text-left"
                             >
-                                Sil
+                                ❌  Sil
                             </button>
                         </div>
                     )}
@@ -166,7 +205,6 @@ const DepartmentsPage: React.FC = () => {
                     <h1 className="text-3xl font-light tracking-wide">Departman Kontrolleri</h1>
 
                     <div className="flex items-center gap-4">
-                        {/* 🔹 +Oluştur solda */}
                         <button
                             onClick={openCreate}
                             className="flex items-center gap-2 bg-white/20 border-2 border-white/30 px-5 py-2 rounded-full hover:bg-white/30 transition shadow"
@@ -174,33 +212,23 @@ const DepartmentsPage: React.FC = () => {
                             + Oluştur
                         </button>
 
-                        {/* 🔹 Kontroller sağda */}
                         <div className="relative">
                             <button
                                 onClick={() => setMenuOpen(!menuOpen)}
                                 className="px-5 py-2 rounded-full bg-white/20 border border-white/30 hover:bg-white/30 transition shadow"
                             >
-                                Kontroller
+                                Paneller
                             </button>
                             {menuOpen && (
                                 <div className="absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-lg overflow-hidden z-20">
-                                    <Link
-                                        to="/admin"
-                                        className="block px-4 py-2 hover:bg-gray-100"
-                                    >
-                                        Admin Panel
+                                    <Link to="/admin" className="block px-4 py-2 hover:bg-gray-100">
+                                        Admin Paneli
                                     </Link>
-                                    <Link
-                                        to="/admin/roles"
-                                        className="block px-4 py-2 hover:bg-gray-100"
-                                    >
-                                        Rol Kontrolleri
+                                    <Link to="/admin/roles" className="block px-4 py-2 hover:bg-gray-100">
+                                        Rol Kontrol Paneli
                                     </Link>
-                                    <Link
-                                        to="/admin/create-user"
-                                        className="block px-4 py-2 hover:bg-gray-100"
-                                    >
-                                        Kullanıcı Oluştur
+                                    <Link to="/admin/create-user" className="block px-4 py-2 hover:bg-gray-100">
+                                        Kişi Oluşturma Paneli
                                     </Link>
                                 </div>
                             )}
@@ -240,10 +268,7 @@ const DepartmentsPage: React.FC = () => {
 
             {/* Modal: Create / Update */}
             {showForm && (
-                <div
-                    className="fixed inset-0 flex items-center justify-center bg-black/50"
-                    onClick={closeForm}
-                >
+                <div className="fixed inset-0 flex items-center justify-center bg-black/50" onClick={closeForm}>
                     <div
                         className="bg-white p-6 rounded-xl shadow-xl w-96"
                         onClick={(e) => e.stopPropagation()}

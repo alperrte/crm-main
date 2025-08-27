@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { getAdminTickets, AdminTicket } from "../api/ticketApi";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // ✅ useNavigate eklendi
 
 const AdminPanel: React.FC = () => {
     const [tickets, setTickets] = useState<AdminTicket[]>([]);
     const [tErr, setTErr] = useState<string>("");
     const [menuOpen, setMenuOpen] = useState(false);
+
+    const navigate = useNavigate(); // ✅ yönlendirme hook'u
 
     // Ticketları çek
     useEffect(() => {
@@ -13,6 +15,12 @@ const AdminPanel: React.FC = () => {
             .then(setTickets)
             .catch((e) => setTErr(String(e?.message ?? e)));
     }, []);
+
+    // ✅ Çıkış fonksiyonu
+    const handleLogout = () => {
+        localStorage.removeItem("token"); // varsa JWT token temizle
+        navigate("/login"); // login sayfasına yönlendir
+    };
 
     // Priority badge class
     const priorityClass = (p: string) => {
@@ -41,44 +49,54 @@ const AdminPanel: React.FC = () => {
                 <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
                     <div>
                         <h1 className="text-4xl font-extrabold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
-                            Admin Panel
+                            Admin Paneli
                         </h1>
                         <h2 className="text-lg text-gray-400">Ticket Yönetimi</h2>
                     </div>
 
-                    {/* Kontroller Dropdown */}
-                    <div className="relative">
+                    <div className="flex items-center gap-4">
+                        {/* ✅ Çıkış Yap Butonu */}
                         <button
-                            onClick={() => setMenuOpen(!menuOpen)}
-                            className="bg-gradient-to-r from-indigo-500 to-purple-600 px-5 py-2 rounded-full font-semibold shadow hover:scale-105 transition"
+                            onClick={handleLogout}
+                            className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg shadow-lg transition font-semibold"
                         >
-                            Kontroller ▼
+                            Çıkış Yap
                         </button>
-                        {menuOpen && (
-                            <div className="absolute right-0 mt-2 w-56 bg-[#1a1a2e]/95 backdrop-blur rounded-xl shadow-lg z-50 border border-white/10 overflow-hidden">
-                                <Link
-                                    to="/admin/departments"
-                                    className="block px-5 py-3 hover:bg-indigo-500/20"
-                                    onClick={() => setMenuOpen(false)}
-                                >
-                                    Departman Kontrolleri
-                                </Link>
-                                <Link
-                                    to="/admin/roles"
-                                    className="block px-5 py-3 hover:bg-indigo-500/20"
-                                    onClick={() => setMenuOpen(false)}
-                                >
-                                    Rol Kontrolleri
-                                </Link>
-                                <Link
-                                    to="/admin/create-user"   // ✅ yeni eklendi
-                                    className="block px-5 py-3 hover:bg-indigo-500/20"
-                                    onClick={() => setMenuOpen(false)}
-                                >
-                                    Kullanıcı Oluştur
-                                </Link>
-                            </div>
-                        )}
+
+                        {/* Kontroller Dropdown */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setMenuOpen(!menuOpen)}
+                                className="bg-gradient-to-r from-indigo-500 to-purple-600 px-5 py-2 rounded-full font-semibold shadow hover:scale-105 transition"
+                            >
+                                Paneller ▼
+                            </button>
+                            {menuOpen && (
+                                <div className="absolute right-0 mt-2 w-56 bg-[#1a1a2e]/95 backdrop-blur rounded-xl shadow-lg z-50 border border-white/10 overflow-hidden">
+                                    <Link
+                                        to="/admin/departments"
+                                        className="block px-5 py-3 hover:bg-indigo-500/20"
+                                        onClick={() => setMenuOpen(false)}
+                                    >
+                                        Departman Kontrol Paneli
+                                    </Link>
+                                    <Link
+                                        to="/admin/roles"
+                                        className="block px-5 py-3 hover:bg-indigo-500/20"
+                                        onClick={() => setMenuOpen(false)}
+                                    >
+                                        Rol Kontrol Paneli
+                                    </Link>
+                                    <Link
+                                        to="/admin/create-user"
+                                        className="block px-5 py-3 hover:bg-indigo-500/20"
+                                        onClick={() => setMenuOpen(false)}
+                                    >
+                                        Kişi Oluşturma Paneli
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 

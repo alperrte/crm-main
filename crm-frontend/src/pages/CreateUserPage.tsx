@@ -1,12 +1,18 @@
 // src/pages/CreateUserPage.tsx
 import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import api from "../api/userApi"; // user-service için
-import personApi, { Person } from "../api/personApi"; // person-service için
+import api from "../api/userApi";
+import personApi, { Person } from "../api/personApi";
 import departmentApi, { Department } from "../api/departmentApi";
+
+interface User {
+    id: number;
+    personId: number;
+}
 
 const CreateUserPage: React.FC = () => {
     const [persons, setPersons] = useState<Person[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(false);
     const [departments, setDepartments] = useState<Department[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
@@ -19,16 +25,24 @@ const CreateUserPage: React.FC = () => {
         surname: "",
         email: "",
         phone: "",
-        departmentId: "", // string tutuyoruz
+        departmentId: "",
     });
     const [editForm, setEditForm] = useState<Person | null>(null);
 
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
     const buttonRefs = useRef<Record<number, HTMLButtonElement | null>>({});
 
+    // ✅ Sayfalama state
+    const [currentPage, setCurrentPage] = useState(1);
+    const personsPerPage = 6;
+
+    // ✅ Filtreleme state
+    const [accessFilter, setAccessFilter] = useState<string>("ALL");
+
     useEffect(() => {
         void fetchPersons();
         void loadDepartments();
+        void fetchUsers();
     }, []);
 
     const fetchPersons = async () => {
@@ -43,6 +57,15 @@ const CreateUserPage: React.FC = () => {
         }
     };
 
+    const fetchUsers = async () => {
+        try {
+            const res = await api.get("/admin/users");
+            setUsers(res.data);
+        } catch (err) {
+            console.error("❌ Kullanıcılar alınamadı:", err);
+        }
+    };
+
     const loadDepartments = async () => {
         try {
             const res = await departmentApi.get("/api/departments");
@@ -52,14 +75,16 @@ const CreateUserPage: React.FC = () => {
         }
     };
 
-    // ✅ Departman ismini ID'ye göre bul
     const getDepartmentName = (id: number | null | undefined) => {
         if (!id) return "—";
         const dep = departments.find((d) => d.id === id);
         return dep ? dep.name : `ID: ${id}`;
     };
 
-    // ✅ Yeni kişi kaydı
+    const isActiveUser = (personId: number) => {
+        return users.some((u) => u.personId === personId);
+    };
+
     const handleSubmit = async () => {
         try {
             await personApi.post("/api/persons", {
@@ -77,7 +102,6 @@ const CreateUserPage: React.FC = () => {
         }
     };
 
-    // ✅ Kişiyi kullanıcı yap
     const makeUser = async (personId: number) => {
         try {
             const password = prompt("Yeni kullanıcı için bir parola girin:");
@@ -86,8 +110,22 @@ const CreateUserPage: React.FC = () => {
             await api.post(`/admin/users/from-person/${personId}`, { password });
             setConfirmPersonId(null);
             void fetchPersons();
+            void fetchUsers();
         } catch (err) {
             console.error("❌ Kullanıcı oluşturulamadı:", err);
+        }
+    };
+
+    const deactivateUser = async (personId: number) => {
+        try {
+            const user = users.find((u) => u.personId === personId);
+            if (!user) return;
+            if (!window.confirm("Bu kullanıcıyı pasifleştirmek istiyor musunuz?")) return;
+
+            await api.delete(`/admin/users/${user.id}`);
+            void fetchUsers();
+        } catch (err) {
+            console.error("❌ Kullanıcı pasifleştirilemedi:", err);
         }
     };
 
@@ -103,13 +141,38 @@ const CreateUserPage: React.FC = () => {
         }
     };
 
+    // ✅ Filtrelenmiş kişiler
+    const filteredPersons = persons.filter((p) => {
+        if (accessFilter === "ALL") return true;
+        if (accessFilter === "ACTIVE") return isActiveUser(p.id);
+        if (accessFilter === "INACTIVE") return !isActiveUser(p.id);
+        return true;
+    });
+
+    // ✅ Sayfalama hesaplamaları
+    const indexOfLastPerson = currentPage * personsPerPage;
+    const indexOfFirstPerson = indexOfLastPerson - personsPerPage;
+    const currentPersons = filteredPersons.slice(indexOfFirstPerson, indexOfLastPerson);
+    const totalPages = Math.ceil(filteredPersons.length / personsPerPage);
+
     return (
         <div className="min-h-screen p-6 bg-gradient-to-br from-indigo-400 to-purple-600 flex justify-center">
-            <div className="w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div className="w-full max-w-7xl bg-white rounded-2xl shadow-2xl overflow-hidden">
                 {/* Header */}
                 <div className="flex justify-between items-center bg-gradient-to-r from-blue-400 to-cyan-400 text-white p-6 relative">
                     <h1 className="text-2xl font-bold">Kişi Yönetimi</h1>
                     <div className="flex items-center gap-4">
+                        {/* ✅ Filtre */}
+                        <select
+                            value={accessFilter}
+                            onChange={(e) => { setAccessFilter(e.target.value); setCurrentPage(1); }}
+                            className="px-4 py-2 rounded-lg text-gray-800"
+                        >
+                            <option value="ALL">Hepsi</option>
+                            <option value="ACTIVE">Giriş Yetkisi Var</option>
+                            <option value="INACTIVE">Giriş Yetkisi Yok</option>
+                        </select>
+
                         <button
                             onClick={() => setModalOpen(true)}
                             className="px-5 py-2 rounded-full bg-white/20 border border-white/30 hover:bg-white/30 transition shadow"
@@ -117,19 +180,18 @@ const CreateUserPage: React.FC = () => {
                             + Yeni Kişi Oluştur
                         </button>
 
-                        {/* Kontroller Dropdown */}
                         <div className="relative">
                             <button
                                 onClick={() => setMenuOpen(!menuOpen)}
                                 className="px-5 py-2 rounded-full bg-white/20 border border-white/30 hover:bg-white/30 transition shadow"
                             >
-                                Kontroller ▼
+                                Paneller ▼
                             </button>
                             {menuOpen && (
                                 <div className="absolute right-0 mt-2 w-56 bg-white text-gray-800 rounded-lg shadow-lg overflow-hidden z-20">
-                                    <Link to="/admin" className="block px-4 py-2 hover:bg-gray-100">Admin Panel</Link>
-                                    <Link to="/admin/departments" className="block px-4 py-2 hover:bg-gray-100">Departman Kontrolleri</Link>
-                                    <Link to="/admin/roles" className="block px-4 py-2 hover:bg-gray-100">Rol Kontrolleri</Link>
+                                    <Link to="/admin" className="block px-4 py-2 hover:bg-gray-100">Admin Paneli</Link>
+                                    <Link to="/admin/departments" className="block px-4 py-2 hover:bg-gray-100">Departman Kontrol Paneli</Link>
+                                    <Link to="/admin/roles" className="block px-4 py-2 hover:bg-gray-100">Rol Kontrol Paneli</Link>
                                 </div>
                             )}
                         </div>
@@ -141,57 +203,114 @@ const CreateUserPage: React.FC = () => {
                     {loading ? (
                         <p>Yükleniyor...</p>
                     ) : (
-                        <table className="table-auto w-full border-collapse rounded-xl shadow-lg relative">
-                            <thead>
-                            <tr className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-left text-sm">
-                                <th className="px-6 py-3">İşlemler</th>
-                                <th className="px-6 py-3">Ad</th>
-                                <th className="px-6 py-3">Soyad</th>
-                                <th className="px-6 py-3">Email</th>
-                                <th className="px-6 py-3">Telefon</th>
-                                <th className="px-6 py-3">Departman</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {persons.map((p) => (
-                                <tr key={p.id} className="hover:bg-gray-50 relative">
-                                    <td className="px-6 py-4 relative">
-                                        <button
-                                            ref={(el) => { buttonRefs.current[p.id] = el; }}
-                                            onClick={() => setOpenDropdown(openDropdown === p.id ? null : p.id)}
-                                            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-full font-semibold"
-                                        >
-                                            İşlemler ▼
-                                        </button>
-                                        {openDropdown === p.id && (
-                                            <div className="absolute mt-2 bg-white shadow-lg rounded-lg z-50">
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setConfirmPersonId(p.id); setOpenDropdown(null); }}
-                                                    className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
-                                                >
-                                                    Kullanıcı Yap
-                                                </button>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setEditForm(p); setEditModalOpen(true); setOpenDropdown(null); }}
-                                                    className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
-                                                >
-                                                    Düzenle
-                                                </button>
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4">{p.name}</td>
-                                    <td className="px-6 py-4">{p.surname}</td>
-                                    <td className="px-6 py-4">{p.email}</td>
-                                    <td className="px-6 py-4">{p.phone}</td>
-                                    {/* ✅ Burada artık ID değil departman adı gösterilecek */}
-                                    <td className="px-6 py-4">
-                                        {getDepartmentName(p.departmentId)}
-                                    </td>
+                        <>
+                            <table className="table-auto w-full border-collapse rounded-xl shadow-lg relative">
+                                <thead>
+                                <tr className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-left text-sm">
+                                    <th className="px-6 py-3">İşlemler</th>
+                                    <th className="px-6 py-3">Ad</th>
+                                    <th className="px-6 py-3">Soyad</th>
+                                    <th className="px-6 py-3">Email</th>
+                                    <th className="px-6 py-3">Telefon</th>
+                                    <th className="px-6 py-3">Departman</th>
+                                    <th className="px-6 py-3">Giriş Yetkisi</th>
                                 </tr>
-                            ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                {currentPersons.map((p) => (
+                                    <tr key={p.id} className="hover:bg-gray-50 relative">
+                                        <td className="px-6 py-4 relative">
+                                            <button
+                                                ref={(el) => { buttonRefs.current[p.id] = el; }}
+                                                onClick={() => setOpenDropdown(openDropdown === p.id ? null : p.id)}
+                                                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-full font-semibold"
+                                            >
+                                                ⚙️ İşlemler ▼
+                                            </button>
+                                            {openDropdown === p.id && (
+                                                <div className="absolute mt-2 bg-white shadow-lg rounded-lg z-50">
+                                                    {!isActiveUser(p.id) ? (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setConfirmPersonId(p.id); setOpenDropdown(null); }}
+                                                            className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
+                                                        >
+                                                            👤 Giriş Yetkisi Ver
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); deactivateUser(p.id); setOpenDropdown(null); }}
+                                                            className="block px-4 py-2 hover:bg-gray-100 w-full text-left text-red-600"
+                                                        >
+                                                            ❌ Giriş Yetkisini Al
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setEditForm(p); setEditModalOpen(true); setOpenDropdown(null); }}
+                                                        className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
+                                                    >
+                                                        ✏️ Düzenle
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4">{p.name}</td>
+                                        <td className="px-6 py-4">{p.surname}</td>
+                                        <td className="px-6 py-4">{p.email}</td>
+                                        <td className="px-6 py-4">{p.phone}</td>
+                                        <td className="px-6 py-4">{getDepartmentName(p.departmentId)}</td>
+                                        <td className="px-6 py-4">
+                                            {isActiveUser(p.id) ? (
+                                                <span className="flex items-center text-green-600 font-medium">
+                                                    <span className="w-2 h-2 bg-green-600 rounded-full mr-2"></span>
+                                                    Var
+                                                </span>
+                                            ) : (
+                                                <span className="flex items-center text-gray-500 italic">
+                                                    <span className="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
+                                                    Yok
+                                                </span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+
+                            {/* ✅ Pagination */}
+                            {totalPages > 1 && (
+                                <div className="flex justify-center items-center gap-2 mt-6">
+                                    <button
+                                        disabled={currentPage === 1}
+                                        onClick={() => setCurrentPage((prev) => prev - 1)}
+                                        className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                                    >
+                                        Önceki
+                                    </button>
+
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                        <button
+                                            key={page}
+                                            onClick={() => setCurrentPage(page)}
+                                            className={`px-3 py-1 rounded ${
+                                                currentPage === page
+                                                    ? "bg-indigo-600 text-white"
+                                                    : "bg-gray-200 hover:bg-gray-300"
+                                            }`}
+                                        >
+                                            {page}
+                                        </button>
+                                    ))}
+
+                                    <button
+                                        disabled={currentPage === totalPages}
+                                        onClick={() => setCurrentPage((prev) => prev + 1)}
+                                        className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                                    >
+                                        Sonraki
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>
