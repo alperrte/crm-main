@@ -28,7 +28,7 @@ const DepartmentsPage: React.FC = () => {
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [expanded, setExpanded] = useState<Record<number, boolean>>({});
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
-    const [dropdownDirection, setDropdownDirection] = useState<Record<number, "up" | "down">>({});
+    const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
 
     const fetchAll = async () => {
         setLoading(true);
@@ -113,21 +113,20 @@ const DepartmentsPage: React.FC = () => {
         setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
     };
 
+    // ✅ Dropdown artık fixed pozisyonla ekrana çiziliyor
     const toggleDropdown = (id: number, e: React.MouseEvent) => {
         e.stopPropagation();
         if (openDropdown === id) {
             setOpenDropdown(null);
+            setDropdownPos(null);
             return;
         }
 
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        const spaceBelow = window.innerHeight - rect.bottom;
-        const spaceAbove = rect.top;
-
-        setDropdownDirection((prev) => ({
-            ...prev,
-            [id]: spaceBelow < 200 && spaceAbove > spaceBelow ? "up" : "down",
-        }));
+        setDropdownPos({
+            top: rect.bottom + window.scrollY,
+            left: rect.left + window.scrollX,
+        });
 
         setOpenDropdown(id);
     };
@@ -144,13 +143,10 @@ const DepartmentsPage: React.FC = () => {
                         ⚙️ İşlemler ▼
                     </button>
 
-                    {openDropdown === dep.id && (
+                    {openDropdown === dep.id && dropdownPos && (
                         <div
-                            className={`absolute w-56 bg-white shadow-lg rounded-lg z-50 max-h-48 overflow-y-auto ${
-                                dropdownDirection[dep.id] === "up"
-                                    ? "bottom-full mb-2"
-                                    : "mt-2 top-full"
-                            }`}
+                            className="fixed min-w-[14rem] bg-white shadow-lg rounded-lg z-50 max-h-96 overflow-y-auto"
+                            style={{ top: dropdownPos.top, left: dropdownPos.left }}
                         >
                             <button
                                 onClick={() => openEdit(dep)}
@@ -168,7 +164,7 @@ const DepartmentsPage: React.FC = () => {
                                 onClick={() => setConfirmDeleteId(dep.id)}
                                 className="block px-4 py-2 text-red-600 hover:bg-red-50 w-full text-left"
                             >
-                                ❌  Sil
+                                ❌ Sil
                             </button>
                         </div>
                     )}
@@ -288,9 +284,7 @@ const DepartmentsPage: React.FC = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    Üst Departman
-                                </label>
+                                <label className="block text-sm font-medium mb-1">Üst Departman</label>
                                 <select
                                     value={form.parentDepartmentId ?? ""}
                                     onChange={(e) =>

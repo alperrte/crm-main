@@ -10,7 +10,7 @@ const CreateTicketPage: React.FC = () => {
     const [ticket, setTicket] = useState<InternalTicketRequest>({
         issue: "",
         priority: "LOW",
-        departmentId: undefined,
+        departmentId: undefined, // opsiyonel
     });
 
     // Departman listesini çek
@@ -28,7 +28,7 @@ const CreateTicketPage: React.FC = () => {
         try {
             await createInternalTicket(ticket);
             alert("✅ Ticket oluşturuldu!");
-            setTicket({ issue: "", priority: "LOW", departmentId: undefined });
+            setTicket({ issue: "", priority: "LOW", departmentId: undefined }); // reset
         } catch (err) {
             console.error("Ticket oluşturulamadı:", err);
             alert("❌ Ticket oluşturulurken hata oluştu!");
@@ -59,7 +59,7 @@ const CreateTicketPage: React.FC = () => {
                         className="border p-2 rounded text-black w-full"
                         value={ticket.priority}
                         onChange={(e) =>
-                            setTicket({ ...ticket, priority: e.target.value })
+                            setTicket({ ...ticket, priority: e.target.value as "LOW" | "MEDIUM" | "HIGH" })
                         }
                     >
                         <option value="LOW">Düşük</option>
@@ -68,14 +68,17 @@ const CreateTicketPage: React.FC = () => {
                     </select>
                 </div>
 
-                {/* ✅ Departman seçimi */}
+                {/* Departman seçimi */}
                 <div>
                     <label className="block mb-2 font-semibold">Departman</label>
                     <select
                         className="border p-2 rounded text-black w-full"
                         value={ticket.departmentId ?? ""}
                         onChange={(e) =>
-                            setTicket({ ...ticket, departmentId: e.target.value ? Number(e.target.value) : undefined })
+                            setTicket({
+                                ...ticket,
+                                departmentId: e.target.value ? Number(e.target.value) : undefined,
+                            })
                         }
                     >
                         <option value="">Departman Seç</option>

@@ -33,5 +33,11 @@ public record TicketResponse(
         // 🔹 yeni eklenen alanlar
         String assigneeEmail,
         String assigneeName,
-        String assigneeSurname
+        String assigneeSurname,
+
+        // devretme bilgileri
+        Long fromDepartmentId,
+        String fromDepartmentName,
+        Long toDepartmentId,
+        String toDepartmentName
 ) {}

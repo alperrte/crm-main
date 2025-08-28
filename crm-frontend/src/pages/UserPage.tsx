@@ -1,4 +1,3 @@
-// src/pages/UserPage.tsx
 import React, { useEffect, useState } from "react";
 import {
     getDeptTickets,
@@ -11,7 +10,7 @@ import { getMyProfile, MyProfile } from "../api/personApi";
 import { Link, useNavigate } from "react-router-dom";
 import { getAllDepartments, Department } from "../api/departmentApi";
 
-type FilterType = "ALL" | "MY_ASSIGNED" | "MY_CLOSED" | "MY_TRANSFERRED" | "INCOMING_TRANSFERRED"; // ✅ yeni eklendi
+type FilterType = "ALL" | "MY_ASSIGNED" | "MY_CLOSED" | "MY_TRANSFERRED" | "INCOMING_TRANSFERRED";
 
 const UserPage: React.FC = () => {
     const [tickets, setTickets] = useState<DeptTicket[]>([]);
@@ -58,11 +57,13 @@ const UserPage: React.FC = () => {
         await loadDepartments();
         setTransferOpen(true);
     };
+
     const closeTransfer = () => {
         setTransferOpen(false);
         setTransferTicketId(null);
     };
 
+    // ✅ Ticket devretme
     const confirmTransfer = async () => {
         if (!transferTicketId || !deptId || !selectedDeptId) return;
         try {
@@ -102,7 +103,6 @@ const UserPage: React.FC = () => {
                 setTickets(await res.json());
             } else if (filter === "INCOMING_TRANSFERRED") {
                 const data = await getDeptTickets(deptId);
-                // 🔹 başka departmandan gelenler (yani status=OPEN ve bu departmana atanmış)
                 setTickets(data.filter((t: DeptTicket) => t.status === "OPEN" && t.departmentId === deptId));
             }
         } catch (e) {
@@ -165,13 +165,33 @@ const UserPage: React.FC = () => {
         await takeTicket(ticketId, deptId);
         fetchTickets();
     };
+
     const handleClose = async (ticketId: number) => {
         await closeTicket(ticketId);
         fetchTickets();
     };
 
-    const customerTickets = tickets.filter(t => !t.employee);
-    const employeeTickets = tickets.filter(t => t.employee);
+    // Öncelik badge componenti
+    const priorityBadge = (priority: string) => {
+        switch (priority) {
+            case "HIGH":
+                return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-500 text-white">YÜKSEK</span>;
+            case "MEDIUM":
+                return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-yellow-400 to-pink-500 text-black">ORTA</span>;
+            case "LOW":
+            default:
+                return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-500 text-white">DÜŞÜK</span>;
+        }
+    };
+
+    // Aktiflik durum ikonu
+    const statusDot = (active?: boolean) => (
+        <span className={`inline-block w-3 h-3 rounded-full ${active ? "bg-green-500" : "bg-red-500"}`}></span>
+    );
+
+    // ✅ Müşteri ve çalışan ticket ayrımı
+    const customerTickets = tickets.filter((t) => !t.employee);
+    const employeeTickets = tickets.filter((t) => t.employee);
 
     const renderTable = (list: DeptTicket[], type: "CUSTOMER" | "EMPLOYEE") => (
         <div className="mb-8">
@@ -182,81 +202,65 @@ const UserPage: React.FC = () => {
                 <table className="w-full text-left">
                     <thead className="bg-purple-700 text-white">
                     <tr>
-                        <th className="p-3">İşlemler</th>
+                        {filter !== "MY_CLOSED" && filter !== "MY_TRANSFERRED" && <th className="p-3">İşlemler</th>}
                         <th className="p-3">ID</th>
                         <th className="p-3">Konu</th>
                         <th className="p-3">Öncelik</th>
                         <th className="p-3">Durum</th>
-                        {type === "CUSTOMER" ? (
+                        <th className="p-3">Aktiflik</th>
+                        {type === "CUSTOMER" && (
                             <>
                                 <th className="p-3">Email</th>
                                 <th className="p-3">Ad</th>
                                 <th className="p-3">Soyad</th>
                                 <th className="p-3">Telefon</th>
                             </>
-                        ) : (
-                            <>
-                                <th className="p-3">Email</th>
-                                <th className="p-3">Ad</th>
-                                <th className="p-3">Soyad</th>
-                            </>
                         )}
+                        {filter === "INCOMING_TRANSFERRED" && <th className="p-3">Geldiği Departman</th>}
                     </tr>
                     </thead>
                     <tbody>
                     {list.length === 0 ? (
                         <tr>
-                            <td colSpan={type === "CUSTOMER" ? 9 : 7} className="p-3 text-center">
-                                Henüz ticket bulunmuyor.
-                            </td>
+                            <td colSpan={12} className="p-3 text-center">Henüz ticket bulunmuyor.</td>
                         </tr>
                     ) : (
                         list.map(t => (
                             <tr key={t.id} className="border-b border-gray-700">
-                                <td className="p-3 space-x-2">
-                                    {filter === "ALL" && t.status === "OPEN" && (
-                                        <button
-                                            className="bg-green-500 text-white px-2 py-1 rounded"
-                                            onClick={() => handleTake(t.id)}
-                                        >
-                                            Üstlen
-                                        </button>
-                                    )}
-                                    {filter === "MY_ASSIGNED" && t.status === "IN_PROGRESS" && (
-                                        <>
-                                            <button
-                                                className="bg-yellow-500 text-white px-2 py-1 rounded"
-                                                onClick={() => openTransfer(t.id)}
-                                            >
-                                                Devret
-                                            </button>
-                                            <button
-                                                className="bg-red-500 text-white px-2 py-1 rounded"
-                                                onClick={() => handleClose(t.id)}
-                                            >
-                                                Kapat
-                                            </button>
-                                        </>
-                                    )}
-                                </td>
+                                {filter !== "MY_CLOSED" && filter !== "MY_TRANSFERRED" && (
+                                    <td className="p-3 space-x-2">
+                                        {filter === "ALL" && t.status === "OPEN" && (
+                                            <button className="bg-green-500 text-white px-2 py-1 rounded"
+                                                    onClick={() => handleTake(t.id)}>Üstlen</button>
+                                        )}
+                                        {filter === "MY_ASSIGNED" && t.status === "IN_PROGRESS" && (
+                                            <>
+                                                <button className="bg-yellow-500 text-white px-2 py-1 rounded"
+                                                        onClick={() => openTransfer(t.id)}>Devret</button>
+                                                <button className="bg-red-500 text-white px-2 py-1 rounded"
+                                                        onClick={() => handleClose(t.id)}>Kapat</button>
+                                            </>
+                                        )}
+                                        {filter === "INCOMING_TRANSFERRED" && t.status === "OPEN" && (
+                                            <button className="bg-green-500 text-white px-2 py-1 rounded"
+                                                    onClick={() => handleTake(t.id)}>Üstlen</button>
+                                        )}
+                                    </td>
+                                )}
                                 <td className="p-3">{t.id}</td>
                                 <td className="p-3">{t.issue}</td>
-                                <td className="p-3">{t.priority}</td>
+                                <td className="p-3">{priorityBadge(t.priority)}</td>
                                 <td className="p-3">{t.status}</td>
-                                {type === "CUSTOMER" ? (
+                                <td className="p-3">{statusDot(t.active)}</td>
+                                {type === "CUSTOMER" && (
                                     <>
                                         <td className="p-3">{t.customerEmail || "—"}</td>
                                         <td className="p-3">{t.customerName || "—"}</td>
                                         <td className="p-3">{t.customerSurname || "—"}</td>
                                         <td className="p-3">{t.customerPhone || "—"}</td>
                                     </>
-                                ) : (
-                                    <>
-                                        <td className="p-3">{t.assigneeEmail || "—"}</td>
-                                        <td className="p-3">{t.assigneeName || "—"}</td>
-                                        <td className="p-3">{t.assigneeSurname || "—"}</td>
-                                    </>
                                 )}
+                                {filter === "INCOMING_TRANSFERRED" && <td className="p-3">{t.fromDepartmentId || "?"}</td>}
                             </tr>
                         ))
                     )}
@@ -287,34 +291,24 @@ const UserPage: React.FC = () => {
                 <Link to="/create-ticket" className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
                     ➕ Yeni Ticket Oluştur
                 </Link>
-                <button
-                    onClick={() => setFilter("MY_ASSIGNED")}
-                    className={`px-4 py-2 rounded-lg ${filter === "MY_ASSIGNED" ? "bg-green-500" : "bg-gray-700"} text-white`}
-                >
+                <button onClick={() => setFilter("MY_ASSIGNED")}
+                        className={`px-4 py-2 rounded-lg ${filter === "MY_ASSIGNED" ? "bg-green-500" : "bg-gray-700"} text-white`}>
                     Üstlendiklerim
                 </button>
-                <button
-                    onClick={() => setFilter("MY_CLOSED")}
-                    className={`px-4 py-2 rounded-lg ${filter === "MY_CLOSED" ? "bg-red-500" : "bg-gray-700"} text-white`}
-                >
+                <button onClick={() => setFilter("MY_CLOSED")}
+                        className={`px-4 py-2 rounded-lg ${filter === "MY_CLOSED" ? "bg-red-500" : "bg-gray-700"} text-white`}>
                     Kapattıklarım
                 </button>
-                <button
-                    onClick={() => setFilter("MY_TRANSFERRED")}
-                    className={`px-4 py-2 rounded-lg ${filter === "MY_TRANSFERRED" ? "bg-amber-500" : "bg-gray-700"} text-white`}
-                >
+                <button onClick={() => setFilter("MY_TRANSFERRED")}
+                        className={`px-4 py-2 rounded-lg ${filter === "MY_TRANSFERRED" ? "bg-amber-500" : "bg-gray-700"} text-white`}>
                     Devrettiklerim
                 </button>
-                <button
-                    onClick={() => setFilter("INCOMING_TRANSFERRED")}
-                    className={`px-4 py-2 rounded-lg ${filter === "INCOMING_TRANSFERRED" ? "bg-blue-500" : "bg-gray-700"} text-white`}
-                >
+                <button onClick={() => setFilter("INCOMING_TRANSFERRED")}
+                        className={`px-4 py-2 rounded-lg ${filter === "INCOMING_TRANSFERRED" ? "bg-blue-500" : "bg-gray-700"} text-white`}>
                     Devredilenler
                 </button>
-                <button
-                    onClick={() => setFilter("ALL")}
-                    className={`px-4 py-2 rounded-lg ${filter === "ALL" ? "bg-purple-500" : "bg-gray-700"} text-white`}
-                >
+                <button onClick={() => setFilter("ALL")}
+                        className={`px-4 py-2 rounded-lg ${filter === "ALL" ? "bg-purple-500" : "bg-gray-700"} text-white`}>
                     Tümü
                 </button>
             </div>
@@ -338,7 +332,8 @@ const UserPage: React.FC = () => {
                         </select>
                         <div className="flex gap-2 justify-end">
                             <button onClick={closeTransfer} className="px-3 py-2 rounded bg-gray-200">Vazgeç</button>
-                            <button disabled={!selectedDeptId} onClick={confirmTransfer} className="px-3 py-2 rounded bg-yellow-400">Devret</button>
+                            <button disabled={!selectedDeptId} onClick={confirmTransfer}
+                                    className="px-3 py-2 rounded bg-yellow-400">Devret</button>
                         </div>
                     </div>
                 </div>

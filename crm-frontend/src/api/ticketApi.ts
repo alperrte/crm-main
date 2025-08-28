@@ -70,13 +70,16 @@ export interface DeptTicket {
     assigneeEmail?: string;
     assigneeName?: string;
     assigneeSurname?: string;
+
+    // ✅ devretme takibi için ek alanlar
+    fromDepartmentId?: number;
+    toDepartmentId?: number;
 }
 
 export interface InternalTicketRequest {
     issue: string;
     priority: string;
-    categoryId?: number;
-    departmentId?: number;   // ✅ eklendi
+    departmentId?: number;   // 🔹 opsiyonel hale getirildi
 }
 
 // ========== API Fonksiyonları ==========
