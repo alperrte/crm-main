@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -28,6 +29,11 @@ public class TicketImpl implements TicketService {
     private final CategoryRepository categoryRepository;
     private final TicketAssignmentRepository assignmentRepository;
     private final JwtUtil jwtUtil;
+
+    // ✅ Person-service adresi
+    private static final String PERSON_SERVICE_URL = "http://localhost:8082/api/persons/";
+
+    private final RestTemplate restTemplate = new RestTemplate();
 
     // === Helper: JWT'den personId oku ===
     private Long currentPersonId() {
@@ -296,25 +302,74 @@ public class TicketImpl implements TicketService {
                         a -> Optional.ofNullable(a.getCompletedDate()).orElse(LocalDateTime.MIN)))
                 .orElse(null);
 
+        // ✅ Ticket'ı açan çalışanın bilgileri
+        String creatorEmail = null;
+        String creatorName = null;
+        String creatorSurname = null;
+        if (t.getCreatorPersonId() != null) {
+            try {
+                Map<?, ?> person = restTemplate.getForObject(
+                        PERSON_SERVICE_URL + t.getCreatorPersonId(),
+                        Map.class
+                );
+                if (person != null) {
+                    creatorEmail = (String) person.get("email");
+                    creatorName = (String) person.get("name");
+                    creatorSurname = (String) person.get("surname");
+                }
+            } catch (Exception e) {
+                log.warn("Person-service (creator) çağrısı başarısız oldu: {}", e.getMessage());
+            }
+        }
+
+        // ✅ Üstlenen çalışanın bilgileri
+        String assigneeEmail = null;
+        String assigneeName = null;
+        String assigneeSurname = null;
+        if (latest != null && latest.getPersonId() != null) {
+            try {
+                Map<?, ?> person = restTemplate.getForObject(
+                        PERSON_SERVICE_URL + latest.getPersonId(),
+                        Map.class
+                );
+                if (person != null) {
+                    assigneeEmail = (String) person.get("email");
+                    assigneeName = (String) person.get("name");
+                    assigneeSurname = (String) person.get("surname");
+                }
+            } catch (Exception e) {
+                log.warn("Person-service (assignee) çağrısı başarısız oldu: {}", e.getMessage());
+            }
+        }
+
         return TicketResponse.builder()
                 .id(t.getId())
+                // müşteri bilgileri
                 .customerEmail(t.getCreatorCustomer() != null ? t.getCreatorCustomer().getEmail() : null)
                 .customerName(t.getCreatorCustomer() != null ? t.getCreatorCustomer().getName() : null)
                 .customerSurname(t.getCreatorCustomer() != null ? t.getCreatorCustomer().getSurname() : null)
                 .customerPhone(t.getCreatorCustomer() != null ? t.getCreatorCustomer().getPhone() : null)
+                // çalışan bilgileri (ticket açan person)
+                .creatorPersonEmail(creatorEmail)
+                .creatorPersonName(creatorName)
+                .creatorPersonSurname(creatorSurname)
+                // temel ticket
                 .issue(t.getIssue())
                 .priority(t.getPriority())
                 .active(t.getActive())
                 .createdDate(t.getCreatedDate())
+                .closedDate(t.getClosedDate())
                 .status(latest != null ? latest.getStatus() : null)
                 .departmentId(latest != null ? latest.getDepartmentId() : null)
+                // opsiyonel
                 .assigneePersonId(latest != null ? latest.getPersonId() : null)
                 .employee(t.getEmployee())
                 .fromDepartmentId(lastTransferred != null ? lastTransferred.getDepartmentId() : null)
                 .toDepartmentId(latest != null ? latest.getDepartmentId() : null)
-                .assigneeEmail(null)
-                .assigneeName(null)
-                .assigneeSurname(null)
+                // üstlenen kişi bilgileri
+                .assigneeEmail(assigneeEmail)
+                .assigneeName(assigneeName)
+                .assigneeSurname(assigneeSurname)
                 .build();
     }
 }

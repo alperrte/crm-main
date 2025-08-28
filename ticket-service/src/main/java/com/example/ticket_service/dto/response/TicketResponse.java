@@ -13,11 +13,17 @@ public record TicketResponse(
         String customerSurname,
         String customerPhone,
 
+        // Çalışan bilgileri (internal / user tickets için)
+        String creatorPersonEmail,
+        String creatorPersonName,
+        String creatorPersonSurname,
+
         // Temel ticket
         String issue,
         String priority, // LOW / MEDIUM / HIGH
         Boolean active,
         LocalDateTime createdDate,
+        LocalDateTime closedDate,
 
         // Anlık durum
         String status, // OPEN | IN_PROGRESS | TRANSFERRED | DONE
@@ -30,12 +36,12 @@ public record TicketResponse(
 
         Boolean employee,
 
-        // 🔹 yeni eklenen alanlar
+        // Üstlenen kişi bilgileri
         String assigneeEmail,
         String assigneeName,
         String assigneeSurname,
 
-        // devretme bilgileri
+        // Devretme bilgileri
         Long fromDepartmentId,
         String fromDepartmentName,
         Long toDepartmentId,

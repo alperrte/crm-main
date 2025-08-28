@@ -48,6 +48,7 @@ export interface AdminTicket {
     priority: string;
     active: boolean;
     createdDate?: string;
+    closedDate?: string;   // ✅ admin ticket için de ekledim
 }
 
 export interface DeptTicket {
@@ -60,6 +61,7 @@ export interface DeptTicket {
     priority: string;
     active: boolean;
     createdDate?: string;
+    closedDate?: string;   // ✅ eksik olan alan eklendi
 
     // 🔹 backend’den gelen alanlar
     status?: string;
@@ -127,6 +129,7 @@ export const getAdminTickets = async (): Promise<AdminTicket[]> => {
         priority: t.priority,
         active: t.active,
         createdDate: t.createdDate,
+        closedDate: t.closedDate,   // ✅ map içine eklendi
     }));
 };
 
