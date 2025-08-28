@@ -45,8 +45,10 @@ const LoginPage: React.FC = () => {
                     navigate("/admin");
                 } else if (role === "PERSON") {
                     navigate("/user");
+                } else if (role === "USER") {
+                    navigate("/user-panel"); // ✅ Artık user buraya gidecek
                 } else {
-                    navigate("/dashboard");
+                    navigate("/login");
                 }
             } catch (decodeError) {
                 console.error("Token decode edilemedi:", decodeError);

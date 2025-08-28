@@ -10,6 +10,7 @@ import UserPage from "./pages/UserPage";
 import PublicTicketForm from "./pages/PublicTicketForm";
 import CreateTicketPage from "./pages/CreateTicketPage";   // ✅ yeni eklendi
 import CreateUserPage from "./pages/CreateUserPage";       // ✅ yeni eklendi
+import UserPanel from "./pages/UserPanel";                 // ✅ yeni eklendi
 
 // Basit koruma: token yoksa login'e at
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -63,7 +64,7 @@ function App() {
                     }
                 />
 
-                {/* ✅ User tarafı */}
+                {/* ✅ Departman user paneli */}
                 <Route
                     path="/user"
                     element={
@@ -79,6 +80,16 @@ function App() {
                     element={
                         <RequireAuth>
                             <CreateTicketPage />
+                        </RequireAuth>
+                    }
+                />
+
+                {/* ✅ Genel USER paneli */}
+                <Route
+                    path="/user-panel"
+                    element={
+                        <RequireAuth>
+                            <UserPanel />
                         </RequireAuth>
                     }
                 />

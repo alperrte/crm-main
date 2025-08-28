@@ -79,7 +79,9 @@ export interface DeptTicket {
 export interface InternalTicketRequest {
     issue: string;
     priority: string;
-    departmentId?: number;   // 🔹 opsiyonel hale getirildi
+    categoryId?: number | null;     // user-panel için opsiyonel
+    personId?: number | null;       // backend JWT’den alıyor
+    departmentId?: number | null;   // departman ticketları için opsiyonel
 }
 
 // ========== API Fonksiyonları ==========
@@ -128,21 +130,17 @@ export const getAdminTickets = async (): Promise<AdminTicket[]> => {
     }));
 };
 
-// ========== ✅ Departman Ticket API Fonksiyonları ==========
-
-// Departman ticketlarını getir
+// ========== Departman Ticket API Fonksiyonları (PERSON/ADMIN) ==========
 export const getDeptTickets = async (deptId: number): Promise<DeptTicket[]> => {
     const res = await ticketApi.get(`/api/departments/${deptId}/tickets`);
     return res.data;
 };
 
-// Ticket üstlen
 export const takeTicket = async (ticketId: number, deptId: number): Promise<DeptTicket> => {
     const res = await ticketApi.put(`/api/departments/tickets/${ticketId}/take?deptId=${deptId}`);
     return res.data;
 };
 
-// Ticket devret
 export const reassignTicket = async (
     ticketId: number,
     fromDeptId: number,
@@ -154,17 +152,45 @@ export const reassignTicket = async (
     return res.data;
 };
 
-// Ticket kapat
 export const closeTicket = async (ticketId: number): Promise<DeptTicket> => {
     const res = await ticketApi.put(`/api/departments/tickets/${ticketId}/close`);
     return res.data;
 };
 
-// ✅ İç ticket oluştur
+// İç ticket oluştur (departman/çalışan)
 export const createInternalTicket = async (
     data: InternalTicketRequest
 ): Promise<DeptTicket> => {
-    const res = await ticketApi.post(`/api/departments/tickets/internal`, data, {
+    const payload = {
+        issue: data.issue,
+        priority: data.priority,
+        categoryId: data.categoryId ?? null,
+        personId: data.personId ?? null,
+        departmentId: data.departmentId ?? null
+    };
+    const res = await ticketApi.post(`/api/departments/tickets/internal`, payload, {
+        headers: { "Content-Type": "application/json" },
+    });
+    return res.data;
+};
+
+// ========== USER Ticket API Fonksiyonları ==========
+export const getUserTickets = async (): Promise<DeptTicket[]> => {
+    const res = await ticketApi.get("/api/user-panel/tickets");
+    return res.data;
+};
+
+export const createUserTicket = async (
+    data: InternalTicketRequest
+): Promise<DeptTicket> => {
+    const payload = {
+        issue: data.issue,
+        priority: data.priority,
+        categoryId: data.categoryId ?? null,
+        personId: data.personId ?? null,        // ✅ backend null kabul edecek
+        departmentId: data.departmentId ?? null // ✅ user için zorunlu değil
+    };
+    const res = await ticketApi.post(`/api/user-panel/tickets`, payload, {
         headers: { "Content-Type": "application/json" },
     });
     return res.data;

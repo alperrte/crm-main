@@ -26,28 +26,31 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // preflight
+                        // 🔹 Preflight OPTIONS (CORS)
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // herkese açık
+                        // 🔹 Public endpointler
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                         .requestMatchers("/api/tickets/public/**").permitAll()
 
-                        // admin uçları → sadece ROLE_ADMIN
+                        // 🔹 Admin uçları → sadece ADMIN
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // departman uçları (PERSON + ADMIN)
+                        // 🔹 Departman uçları → ADMIN + PERSON
                         .requestMatchers("/api/departments/**").hasAnyRole("ADMIN", "PERSON")
 
-                        // ticket oluşturma → USER, PERSON, ADMIN
+                        // 🔹 User panel uçları → sadece USER
+                        .requestMatchers("/api/user-panel/**").hasRole("USER")
+
+                        // 🔹 Ticket oluşturma → USER, PERSON, ADMIN
                         .requestMatchers(HttpMethod.POST, "/api/tickets/create")
                         .hasAnyRole("USER", "PERSON", "ADMIN")
 
-                        // ticket listeleme & diğer ticket işlemleri → PERSON | ADMIN
+                        // 🔹 Ticket listeleme & işlemleri → PERSON + ADMIN
                         .requestMatchers("/api/tickets/**").hasAnyRole("PERSON", "ADMIN")
 
-                        // geri kalan her şey authentication ister
+                        // 🔹 Geri kalan her şey → login gerekli
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

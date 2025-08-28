@@ -64,4 +64,14 @@ public interface TicketService {
      * Kullanıcının devrettiği ticketlar.
      */
     List<TicketResponse> listMyTransferred(Long personId);
+
+    /**
+     * Sadece kayıt olan kullanıcıların kendi adına ticket açması.
+     */
+    TicketResponse createUserTicket(String issue, String priority, Long categoryId, Long personId);
+
+    /**
+     * Kayıtlı kullanıcının kendi açtığı ticketları listeleme.
+     */
+    List<TicketResponse> listMyTicketsByPerson(Long personId);
 }

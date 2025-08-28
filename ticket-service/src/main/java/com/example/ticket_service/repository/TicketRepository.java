@@ -13,4 +13,6 @@ public interface TicketRepository extends JpaRepository<TicketEntity, Long> {
     @EntityGraph(attributePaths = {"creatorCustomer"})
     List<TicketEntity> findAllByOrderByCreatedDateDesc();
 
+    List<TicketEntity> findByCreatorPersonId(Long personId);
+
 }
