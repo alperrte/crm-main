@@ -46,7 +46,7 @@ public interface TicketService {
     /**
      * Departman içi (internal) ticket oluşturur.
      */
-    TicketResponse createInternalTicket(InternalTicketRequest req, Long deptId);
+    TicketResponse createInternalTicket(InternalTicketRequest req);
 
     // === Kullanıcının kendi listeleri ===
 

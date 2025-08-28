@@ -61,16 +61,22 @@ export interface DeptTicket {
     active: boolean;
     createdDate?: string;
 
-    // 🔹 yeni alanlar
+    // 🔹 backend’den gelen alanlar
     status?: string;
     departmentId?: number;
     employee: boolean; // true = personel açtı, false = müşteri açtı
+
+    // ✅ yeni eklenen alanlar (çalışan bilgileri için)
+    assigneeEmail?: string;
+    assigneeName?: string;
+    assigneeSurname?: string;
 }
 
 export interface InternalTicketRequest {
     issue: string;
     priority: string;
     categoryId?: number;
+    departmentId?: number;   // ✅ eklendi
 }
 
 // ========== API Fonksiyonları ==========
@@ -151,12 +157,11 @@ export const closeTicket = async (ticketId: number): Promise<DeptTicket> => {
     return res.data;
 };
 
-// İç ticket oluştur
+// ✅ İç ticket oluştur
 export const createInternalTicket = async (
-    deptId: number,
     data: InternalTicketRequest
 ): Promise<DeptTicket> => {
-    const res = await ticketApi.post(`/api/departments/${deptId}/tickets/internal`, data, {
+    const res = await ticketApi.post(`/api/departments/tickets/internal`, data, {
         headers: { "Content-Type": "application/json" },
     });
     return res.data;

@@ -6,5 +6,6 @@ public record InternalTicketRequest(
         @NotBlank String issue,
         @NotBlank String priority,   // LOW | MEDIUM | HIGH
         Integer categoryId,           // opsiyonel (istenirse kategori üzerinden yönlendirme yapılabilir)
-        Long personId
+        Long personId,
+        Long departmentId
 ) {}

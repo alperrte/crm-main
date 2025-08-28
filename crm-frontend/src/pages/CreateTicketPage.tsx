@@ -2,45 +2,33 @@ import React, { useEffect, useState } from "react";
 import {
     createInternalTicket,
     InternalTicketRequest,
-    getCategories,
-    Category,
 } from "../api/ticketApi";
-import { getMyProfile, MyProfile } from "../api/personApi";
+import { getAllDepartments, Department } from "../api/departmentApi";
 
 const CreateTicketPage: React.FC = () => {
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [deptId, setDeptId] = useState<number | null>(null);
-
+    const [departments, setDepartments] = useState<Department[]>([]);
     const [ticket, setTicket] = useState<InternalTicketRequest>({
         issue: "",
         priority: "LOW",
-        categoryId: undefined,
+        departmentId: undefined,
     });
 
-    // İlk açılışta profil + kategori çek
+    // Departman listesini çek
     useEffect(() => {
-        getMyProfile()
-            .then((me: MyProfile) => {
-                if (me?.department?.id) {
-                    setDeptId(me.department.id);
-                } else if (me?.departmentId) {
-                    setDeptId(me.departmentId);
-                }
-            })
-            .catch((e) => console.error("Profil alınamadı:", e));
-
-        getCategories().then(setCategories).catch(console.error);
+        getAllDepartments()
+            .then(setDepartments)
+            .catch((e) => console.error("Departmanlar alınamadı:", e));
     }, []);
 
     const handleCreate = async () => {
-        if (!deptId || !ticket.issue || !ticket.categoryId) {
-            alert("⚠️ Lütfen açıklama ve kategori seçiniz!");
+        if (!ticket.issue || !ticket.departmentId) {
+            alert("⚠️ Lütfen açıklama ve departman seçiniz!");
             return;
         }
         try {
-            await createInternalTicket(deptId, ticket);
+            await createInternalTicket(ticket);
             alert("✅ Ticket oluşturuldu!");
-            setTicket({ issue: "", priority: "LOW", categoryId: undefined });
+            setTicket({ issue: "", priority: "LOW", departmentId: undefined });
         } catch (err) {
             console.error("Ticket oluşturulamadı:", err);
             alert("❌ Ticket oluşturulurken hata oluştu!");
@@ -64,28 +52,6 @@ const CreateTicketPage: React.FC = () => {
                     />
                 </div>
 
-                {/* Kategori seçimi */}
-                <div>
-                    <label className="block mb-2 font-semibold">Kategori</label>
-                    <select
-                        className="border p-2 rounded text-black w-full"
-                        value={ticket.categoryId ?? ""}
-                        onChange={(e) =>
-                            setTicket({
-                                ...ticket,
-                                categoryId: e.target.value ? Number(e.target.value) : undefined,
-                            })
-                        }
-                    >
-                        <option value="">Kategori Seç</option>
-                        {categories.map((c) => (
-                            <option key={c.id} value={c.id}>
-                                {c.displayName}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
                 {/* Öncelik */}
                 <div>
                     <label className="block mb-2 font-semibold">Öncelik</label>
@@ -99,6 +65,25 @@ const CreateTicketPage: React.FC = () => {
                         <option value="LOW">Düşük</option>
                         <option value="MEDIUM">Orta</option>
                         <option value="HIGH">Yüksek</option>
+                    </select>
+                </div>
+
+                {/* ✅ Departman seçimi */}
+                <div>
+                    <label className="block mb-2 font-semibold">Departman</label>
+                    <select
+                        className="border p-2 rounded text-black w-full"
+                        value={ticket.departmentId ?? ""}
+                        onChange={(e) =>
+                            setTicket({ ...ticket, departmentId: e.target.value ? Number(e.target.value) : undefined })
+                        }
+                    >
+                        <option value="">Departman Seç</option>
+                        {departments.map((d) => (
+                            <option key={d.id} value={d.id}>
+                                {d.name}
+                            </option>
+                        ))}
                     </select>
                 </div>
 

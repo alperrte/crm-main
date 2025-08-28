@@ -8,46 +8,50 @@ import {
     DeptTicket,
 } from "../api/ticketApi";
 import { getMyProfile, MyProfile } from "../api/personApi";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getAllDepartments, Department } from "../api/departmentApi";
 
-type FilterType = "ALL" | "MY_ASSIGNED" | "MY_CLOSED";
+type FilterType = "ALL" | "MY_ASSIGNED" | "MY_CLOSED" | "MY_TRANSFERRED" | "INCOMING_TRANSFERRED"; // ✅ yeni eklendi
 
 const UserPage: React.FC = () => {
     const [tickets, setTickets] = useState<DeptTicket[]>([]);
     const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState<FilterType>("ALL");
 
-    // Kullanıcı bilgileri
     const [userInfo, setUserInfo] = useState<{
         personId?: number;
         name?: string;
         surname?: string;
         email?: string;
-        role?: string;
     }>({});
 
     const [deptId, setDeptId] = useState<number | null>(null);
     const [departmentName, setDepartmentName] = useState<string | null>(null);
 
-    // === Transfer Modal state ===
     const [transferOpen, setTransferOpen] = useState(false);
     const [transferTicketId, setTransferTicketId] = useState<number | null>(null);
     const [departments, setDepartments] = useState<Department[]>([]);
     const [selectedDeptId, setSelectedDeptId] = useState<number | "">("");
+
+    const navigate = useNavigate();
+
+    // Çıkış işlemi
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("deptId");
+        navigate("/login");
+    };
 
     // Departman listesini yükle
     const loadDepartments = async () => {
         try {
             const list = await getAllDepartments();
             setDepartments(list);
-        } catch (e) {
-            console.warn("Departmanlar alınamadı:", e);
+        } catch {
             setDepartments([]);
         }
     };
 
-    // Transfer modal aç
     const openTransfer = async (ticketId: number) => {
         setTransferTicketId(ticketId);
         setSelectedDeptId("");
@@ -58,25 +62,13 @@ const UserPage: React.FC = () => {
         setTransferOpen(false);
         setTransferTicketId(null);
     };
+
     const confirmTransfer = async () => {
-        if (!transferTicketId || !deptId || !selectedDeptId) {
-            console.warn("⚠️ Devretmek için gerekli bilgiler eksik:", {
-                transferTicketId, deptId, selectedDeptId,
-            });
-            return;
-        }
-
-        console.log("🔄 Devretme isteği gönderiliyor:", {
-            ticketId: transferTicketId,
-            fromDeptId: deptId,
-            newDeptId: selectedDeptId,
-        });
-
+        if (!transferTicketId || !deptId || !selectedDeptId) return;
         try {
             await reassignTicket(transferTicketId, deptId, Number(selectedDeptId));
-            console.log("✅ Devretme başarılı!");
+            await fetchTickets();
             closeTransfer();
-            fetchTickets();
         } catch (err) {
             console.error("❌ Devretme hatası:", err);
         }
@@ -89,25 +81,29 @@ const UserPage: React.FC = () => {
         try {
             if (filter === "ALL") {
                 const data = await getDeptTickets(deptId);
-                setTickets(data.filter((t) => t.status === "OPEN"));
+                setTickets(data);
             } else if (filter === "MY_ASSIGNED" && userInfo.personId) {
                 const res = await fetch(
                     `http://localhost:8084/api/departments/me/assigned?personId=${userInfo.personId}`,
-                    {
-                        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-                    }
+                    { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
                 );
-                const list = await res.json();
-                setTickets(list.filter((t: DeptTicket) => t.status === "IN_PROGRESS"));
+                setTickets(await res.json());
             } else if (filter === "MY_CLOSED" && userInfo.personId) {
                 const res = await fetch(
                     `http://localhost:8084/api/departments/me/closed?personId=${userInfo.personId}`,
-                    {
-                        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-                    }
+                    { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
                 );
-                const list = await res.json();
-                setTickets(list.filter((t: DeptTicket) => t.status === "DONE"));
+                setTickets(await res.json());
+            } else if (filter === "MY_TRANSFERRED" && userInfo.personId) {
+                const res = await fetch(
+                    `http://localhost:8084/api/departments/me/transferred?personId=${userInfo.personId}`,
+                    { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+                );
+                setTickets(await res.json());
+            } else if (filter === "INCOMING_TRANSFERRED") {
+                const data = await getDeptTickets(deptId);
+                // 🔹 başka departmandan gelenler (yani status=OPEN ve bu departmana atanmış)
+                setTickets(data.filter((t: DeptTicket) => t.status === "OPEN" && t.departmentId === deptId));
             }
         } catch (e) {
             console.error("Ticket yüklenemedi:", e);
@@ -120,20 +116,16 @@ const UserPage: React.FC = () => {
     useEffect(() => {
         const raw = localStorage.getItem("token");
         let deptFromToken: number | null = null;
-
         if (raw) {
             try {
                 const token = raw.startsWith('"') ? JSON.parse(raw) : raw;
                 const payload = JSON.parse(atob(token.split(".")[1]));
-
                 setUserInfo({
                     personId: payload.personId,
                     name: payload.name,
                     surname: payload.surname,
                     email: payload.sub || payload.email,
-                    role: payload.role || payload.roles?.[0],
                 });
-
                 const claim = payload.deptId || payload.departmentId || payload.department_id;
                 if (claim) {
                     deptFromToken = Number(claim);
@@ -144,7 +136,6 @@ const UserPage: React.FC = () => {
                 console.error("Token decode hatası:", err);
             }
         }
-
         if (!deptFromToken) {
             const ls = localStorage.getItem("deptId");
             if (ls) {
@@ -158,19 +149,17 @@ const UserPage: React.FC = () => {
                             localStorage.setItem("deptId", String(d));
                         }
                         if (me.department?.name) setDepartmentName(me.department.name);
-                        setUserInfo((prev) => ({ ...prev, personId: me.id }));
+                        setUserInfo(prev => ({ ...prev, personId: me.id }));
                     })
-                    .catch((e) => console.warn("Profil alınamadı:", e));
+                    .catch(() => {});
             }
         }
     }, []);
 
-    // Departman veya filter değiştiğinde ticketları getir
     useEffect(() => {
         fetchTickets();
     }, [deptId, filter, userInfo.personId]);
 
-    // İşlemler
     const handleTake = async (ticketId: number) => {
         if (!deptId) return;
         await takeTicket(ticketId, deptId);
@@ -181,19 +170,9 @@ const UserPage: React.FC = () => {
         fetchTickets();
     };
 
-    // İstatistikler
-    const stats = {
-        total: tickets.length,
-        high: tickets.filter((t) => t.priority === "HIGH").length,
-        medium: tickets.filter((t) => t.priority === "MEDIUM").length,
-        active: tickets.filter((t) => t.status === "OPEN").length,
-    };
+    const customerTickets = tickets.filter(t => !t.employee);
+    const employeeTickets = tickets.filter(t => t.employee);
 
-    // Ticketları müşteri / çalışan ayır
-    const customerTickets = tickets.filter((t) => !t.employee);
-    const employeeTickets = tickets.filter((t) => t.employee);
-
-    // Tek tablo render
     const renderTable = (list: DeptTicket[], type: "CUSTOMER" | "EMPLOYEE") => (
         <div className="mb-8">
             <h2 className="text-lg font-semibold mb-2">
@@ -208,13 +187,18 @@ const UserPage: React.FC = () => {
                         <th className="p-3">Konu</th>
                         <th className="p-3">Öncelik</th>
                         <th className="p-3">Durum</th>
-                        <th className="p-3">Departman</th>
-                        {type === "CUSTOMER" && (
+                        {type === "CUSTOMER" ? (
                             <>
-                                <th className="p-3">Müşteri Email</th>
-                                <th className="p-3">Müşteri Adı</th>
-                                <th className="p-3">Müşteri Soyadı</th>
-                                <th className="p-3">Müşteri Telefon</th>
+                                <th className="p-3">Email</th>
+                                <th className="p-3">Ad</th>
+                                <th className="p-3">Soyad</th>
+                                <th className="p-3">Telefon</th>
+                            </>
+                        ) : (
+                            <>
+                                <th className="p-3">Email</th>
+                                <th className="p-3">Ad</th>
+                                <th className="p-3">Soyad</th>
                             </>
                         )}
                     </tr>
@@ -222,12 +206,12 @@ const UserPage: React.FC = () => {
                     <tbody>
                     {list.length === 0 ? (
                         <tr>
-                            <td colSpan={type === "CUSTOMER" ? 10 : 6} className="p-3 text-center">
+                            <td colSpan={type === "CUSTOMER" ? 9 : 7} className="p-3 text-center">
                                 Henüz ticket bulunmuyor.
                             </td>
                         </tr>
                     ) : (
-                        list.map((t) => (
+                        list.map(t => (
                             <tr key={t.id} className="border-b border-gray-700">
                                 <td className="p-3 space-x-2">
                                     {filter === "ALL" && t.status === "OPEN" && (
@@ -258,24 +242,19 @@ const UserPage: React.FC = () => {
                                 <td className="p-3">{t.id}</td>
                                 <td className="p-3">{t.issue}</td>
                                 <td className="p-3">{t.priority}</td>
-                                <td className="p-3">
-                                    {t.status === "OPEN" ? (
-                                        <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs">Açık</span>
-                                    ) : t.status === "IN_PROGRESS" ? (
-                                        <span className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs">Üstlenildi</span>
-                                    ) : t.status === "TRANSFERRED" ? (
-                                        <span className="bg-amber-500 text-white px-2 py-1 rounded-full text-xs">Devredildi</span>
-                                    ) : (
-                                        <span className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs">Kapalı</span>
-                                    )}
-                                </td>
-                                <td className="p-3">{t.departmentId ?? "—"}</td>
-                                {type === "CUSTOMER" && (
+                                <td className="p-3">{t.status}</td>
+                                {type === "CUSTOMER" ? (
                                     <>
-                                        <td className="p-3">{t.customerEmail ?? "—"}</td>
-                                        <td className="p-3">{t.customerName ?? "—"}</td>
-                                        <td className="p-3">{t.customerSurname ?? "—"}</td>
-                                        <td className="p-3">{t.customerPhone ?? "—"}</td>
+                                        <td className="p-3">{t.customerEmail || "—"}</td>
+                                        <td className="p-3">{t.customerName || "—"}</td>
+                                        <td className="p-3">{t.customerSurname || "—"}</td>
+                                        <td className="p-3">{t.customerPhone || "—"}</td>
+                                    </>
+                                ) : (
+                                    <>
+                                        <td className="p-3">{t.assigneeEmail || "—"}</td>
+                                        <td className="p-3">{t.assigneeName || "—"}</td>
+                                        <td className="p-3">{t.assigneeSurname || "—"}</td>
                                     </>
                                 )}
                             </tr>
@@ -289,41 +268,23 @@ const UserPage: React.FC = () => {
 
     return (
         <div className="p-6 bg-gray-900 min-h-screen text-white">
-            {/* Sağ üst kullanıcı bilgisi */}
-            <div className="absolute top-4 right-6 text-sm text-gray-300">
-                {userInfo.name} {userInfo.surname} ({userInfo.email}) - {userInfo.role}
+            <div className="absolute top-4 right-6 text-sm text-gray-300 flex items-center gap-2">
+                {userInfo.name} {userInfo.surname} ({userInfo.email})
+                {departmentName && ` - ${departmentName}`}
+                <button
+                    onClick={handleLogout}
+                    className="ml-3 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                >
+                    Çıkış Yap
+                </button>
             </div>
 
             <h1 className="text-2xl font-bold mb-6">
                 📌 {departmentName ? `${departmentName} Departmanı Paneli` : "Departman Ticket Paneli"}
             </h1>
 
-            {/* İstatistik kartları */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
-                <div className="bg-gray-800 p-4 rounded-xl text-center shadow">
-                    <h2 className="text-2xl font-bold">{stats.total}</h2>
-                    <p className="text-gray-400 text-sm">Toplam Ticket</p>
-                </div>
-                <div className="bg-gray-800 p-4 rounded-xl text-center shadow">
-                    <h2 className="text-2xl font-bold text-red-400">{stats.high}</h2>
-                    <p className="text-gray-400 text-sm">Yüksek Öncelik</p>
-                </div>
-                <div className="bg-gray-800 p-4 rounded-xl text-center shadow">
-                    <h2 className="text-2xl font-bold text-yellow-300">{stats.medium}</h2>
-                    <p className="text-gray-400 text-sm">Orta Öncelik</p>
-                </div>
-                <div className="bg-gray-800 p-4 rounded-xl text-center shadow">
-                    <h2 className="text-2xl font-bold text-green-400">{stats.active}</h2>
-                    <p className="text-gray-400 text-sm">Aktif</p>
-                </div>
-            </div>
-
-            {/* Butonlar */}
             <div className="mb-6 flex gap-2">
-                <Link
-                    to="/create-ticket"
-                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-                >
+                <Link to="/create-ticket" className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
                     ➕ Yeni Ticket Oluştur
                 </Link>
                 <button
@@ -339,6 +300,18 @@ const UserPage: React.FC = () => {
                     Kapattıklarım
                 </button>
                 <button
+                    onClick={() => setFilter("MY_TRANSFERRED")}
+                    className={`px-4 py-2 rounded-lg ${filter === "MY_TRANSFERRED" ? "bg-amber-500" : "bg-gray-700"} text-white`}
+                >
+                    Devrettiklerim
+                </button>
+                <button
+                    onClick={() => setFilter("INCOMING_TRANSFERRED")}
+                    className={`px-4 py-2 rounded-lg ${filter === "INCOMING_TRANSFERRED" ? "bg-blue-500" : "bg-gray-700"} text-white`}
+                >
+                    Devredilenler
+                </button>
+                <button
                     onClick={() => setFilter("ALL")}
                     className={`px-4 py-2 rounded-lg ${filter === "ALL" ? "bg-purple-500" : "bg-gray-700"} text-white`}
                 >
@@ -346,47 +319,26 @@ const UserPage: React.FC = () => {
                 </button>
             </div>
 
-            {/* Ayrı tablolar */}
             {renderTable(customerTickets, "CUSTOMER")}
             {renderTable(employeeTickets, "EMPLOYEE")}
 
-            {/* === Inline Transfer Modal === */}
             {transferOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-2xl p-4 w-full max-w-md text-gray-900">
-                        <h3 className="text-lg font-semibold mb-3">
-                            Ticket #{transferTicketId} → Devret
-                        </h3>
-
+                        <h3 className="text-lg font-semibold mb-3">Ticket #{transferTicketId} → Devret</h3>
                         <select
                             className="w-full border rounded p-2 mb-3"
                             value={selectedDeptId}
                             onChange={(e) => setSelectedDeptId(Number(e.target.value))}
                         >
-                            <option value="" disabled>
-                                Departman seç
-                            </option>
-                            {departments.map((d) => (
-                                <option key={d.id} value={d.id}>
-                                    {d.name}
-                                </option>
+                            <option value="" disabled>Departman seç</option>
+                            {departments.map(d => (
+                                <option key={d.id} value={d.id}>{d.name}</option>
                             ))}
                         </select>
-
                         <div className="flex gap-2 justify-end">
-                            <button
-                                onClick={closeTransfer}
-                                className="px-3 py-2 rounded bg-gray-200"
-                            >
-                                Vazgeç
-                            </button>
-                            <button
-                                disabled={!selectedDeptId}
-                                onClick={confirmTransfer}
-                                className="px-3 py-2 rounded bg-yellow-400"
-                            >
-                                Devret
-                            </button>
+                            <button onClick={closeTransfer} className="px-3 py-2 rounded bg-gray-200">Vazgeç</button>
+                            <button disabled={!selectedDeptId} onClick={confirmTransfer} className="px-3 py-2 rounded bg-yellow-400">Devret</button>
                         </div>
                     </div>
                 </div>

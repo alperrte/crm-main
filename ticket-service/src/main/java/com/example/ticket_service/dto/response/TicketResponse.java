@@ -28,5 +28,10 @@ public record TicketResponse(
         Long transferredByPersonId,  // son devreden kişi
         String transferredByFullName, // devredenin adı
 
-        Boolean employee
+        Boolean employee,
+
+        // 🔹 yeni eklenen alanlar
+        String assigneeEmail,
+        String assigneeName,
+        String assigneeSurname
 ) {}

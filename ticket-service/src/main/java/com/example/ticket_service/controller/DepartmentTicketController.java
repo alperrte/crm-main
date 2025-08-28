@@ -67,11 +67,10 @@ public class DepartmentTicketController {
 
     // === Departman iç ticket oluşturma ===
     @PreAuthorize("hasAnyRole('PERSON','ADMIN')")
-    @PostMapping("/{deptId}/tickets/internal")
-    public ResponseEntity<TicketResponse> createInternal(@PathVariable Long deptId,
-                                                         @RequestBody InternalTicketRequest req) {
-        logAuth("createInternal deptId=" + deptId);
-        return ResponseEntity.ok(ticketService.createInternalTicket(req, deptId));
+    @PostMapping("/tickets/internal")
+    public ResponseEntity<TicketResponse> createInternal(@RequestBody InternalTicketRequest req) {
+        logAuth("createInternal departmentId=" + req.departmentId());
+        return ResponseEntity.ok(ticketService.createInternalTicket(req));
     }
 
     // === Kullanıcının kendi listeleri ===

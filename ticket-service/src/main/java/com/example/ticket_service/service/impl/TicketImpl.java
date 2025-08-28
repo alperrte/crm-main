@@ -1,4 +1,3 @@
-// TicketImpl.java
 package com.example.ticket_service.service.impl;
 
 import com.example.ticket_service.dto.request.InternalTicketRequest;
@@ -93,6 +92,7 @@ public class TicketImpl implements TicketService {
     @Override
     public List<TicketResponse> listTicketsByDepartment(Long deptId) {
         return assignmentRepository.findByDepartmentId(deptId).stream()
+                .filter(a -> !"TRANSFERRED".equals(a.getStatus())) // devredilen kayıtları çıkar
                 .map(TicketAssignmentEntity::getTicket)
                 .map(this::toResponse)
                 .toList();
@@ -134,32 +134,23 @@ public class TicketImpl implements TicketService {
     @Override
     @Transactional
     public TicketResponse reassignTicket(Long ticketId, Long fromDeptId, Long toDeptId) {
-        // 🔹 1. En güncel assignment'ı bul
         TicketAssignmentEntity oldAssign = assignmentRepository.findByTicketId(ticketId).stream()
                 .max(Comparator.comparing(
                         a -> Optional.ofNullable(a.getAssignedDate()).orElse(LocalDateTime.MIN)))
                 .orElseThrow(() -> new IllegalArgumentException("Ticket için assignment bulunamadı"));
 
-        // 🔹 2. Aktif kullanıcı (devreden kişi)
         Long actor = Optional.ofNullable(currentPersonId())
                 .orElseThrow(() -> new IllegalStateException("Devreden personId bulunamadı!"));
 
         log.info("🎯 reassignTicket: ticketId={}, fromDeptId={}, toDeptId={}, eski status={}, eski personId={}, actor={}",
                 ticketId, fromDeptId, toDeptId, oldAssign.getStatus(), oldAssign.getPersonId(), actor);
 
-        // 🔹 3. Kontrol: ya departmanId eşleşmeli ya da zaten üstlenilmiş olmalı
-        if (!Objects.equals(oldAssign.getDepartmentId(), fromDeptId) && oldAssign.getPersonId() == null) {
-            throw new IllegalArgumentException("Ticket bu departmana veya kişiye ait değil");
-        }
-
-        // 🔹 4. Eski assignment → TRANSFERRED
         oldAssign.setPersonId(actor);
         oldAssign.setStatus("TRANSFERRED");
         oldAssign.setCompletedDate(LocalDateTime.now());
-        oldAssign.setDepartmentId(null); // constraint uyumu
+        oldAssign.setDepartmentId(null);
         assignmentRepository.save(oldAssign);
 
-        // 🔹 5. Yeni assignment → sadece departmentId dolu
         TicketAssignmentEntity newAssign = TicketAssignmentEntity.builder()
                 .ticket(oldAssign.getTicket())
                 .departmentId(toDeptId)
@@ -201,12 +192,16 @@ public class TicketImpl implements TicketService {
         return toResponse(t);
     }
 
-    // === Internal Ticket ===
+    // === Internal Ticket (revize) ===
     @Override
     @Transactional
-    public TicketResponse createInternalTicket(InternalTicketRequest req, Long deptId) {
+    public TicketResponse createInternalTicket(InternalTicketRequest req) {
         Long personId = Optional.ofNullable(currentPersonId())
                 .orElseThrow(() -> new IllegalStateException("Internal ticket açan personId bulunamadı!"));
+
+        if (req.departmentId() == null) {
+            throw new IllegalArgumentException("Departman seçilmesi zorunludur");
+        }
 
         TicketEntity ticket = TicketEntity.builder()
                 .issue(req.issue())
@@ -214,13 +209,13 @@ public class TicketImpl implements TicketService {
                 .active(true)
                 .createdDate(LocalDateTime.now())
                 .creatorPersonId(personId)
-                .employee(true) // 🔹 internal ticket → personel açtı
+                .employee(true) // ✅ çalışan açtı
                 .build();
         ticket = ticketRepository.save(ticket);
 
         TicketAssignmentEntity ta = TicketAssignmentEntity.builder()
                 .ticket(ticket)
-                .departmentId(deptId)
+                .departmentId(req.departmentId()) // ✅ frontend’ten gelen departman
                 .status("OPEN")
                 .assignedDate(LocalDateTime.now())
                 .inPool(false)
@@ -261,6 +256,7 @@ public class TicketImpl implements TicketService {
     // === Map ===
     private TicketResponse toResponse(TicketEntity t) {
         TicketAssignmentEntity assignment = assignmentRepository.findByTicketId(t.getId()).stream()
+                .filter(a -> !"TRANSFERRED".equals(a.getStatus())) // sadece aktif assignment
                 .max(Comparator.comparing(
                         a -> Optional.ofNullable(a.getAssignedDate()).orElse(LocalDateTime.MIN)))
                 .orElse(null);
@@ -278,7 +274,10 @@ public class TicketImpl implements TicketService {
                 .status(assignment != null ? assignment.getStatus() : null)
                 .departmentId(assignment != null ? assignment.getDepartmentId() : null)
                 .assigneePersonId(assignment != null ? assignment.getPersonId() : null)
-                .employee(t.getEmployee()) // 🔹 eklendi
+                .employee(t.getEmployee())
+                .assigneeEmail(null)
+                .assigneeName(null)
+                .assigneeSurname(null)
                 .build();
     }
 }
