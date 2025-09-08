@@ -33,9 +33,10 @@ services:
       context: .
       dockerfile: department-service/Dockerfile
     container_name: department-service
-    env_file: [ .env ]
+    env_file:
+      - .env
     environment:
-      SERVER_PORT: ${DEPARTMENT_SERVER_PORT:-8081}
+      SERVER_PORT: ${DEPARTMENT_SERVER_PORT}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
@@ -44,14 +45,14 @@ services:
       DB_ENCRYPT: ${DB_ENCRYPT}
       DB_TRUST_SERVER_CERT: ${DB_TRUST_SERVER_CERT}
     ports:
-      - "${DEPARTMENT_SERVER_PORT:-8081}:${DEPARTMENT_SERVER_PORT:-8081}"
+      - "${DEPARTMENT_SERVER_PORT}:${DEPARTMENT_SERVER_PORT}"
     depends_on:
       mssql:
         condition: service_healthy
       db-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:${SERVER_PORT:-8081}/actuator/health > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${DEPARTMENT_SERVER_PORT}/actuator/health > /dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -107,7 +108,7 @@ services:
       JWT_EXPIRATION: ${JWT_EXPIRATION}
       JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION}
       JWT_ISSUER: ${JWT_ISSUER}
-      PERSON_SERVICE_URL: http://person:8082   # 👈 Burayı ekledik Bunu ekledikten sonra person internal 500 error ortadan kalktı.
+      PERSON_SERVICE_URL: http://person:8082
     ports:
       - "${USER_SERVER_PORT:-8083}:${USER_SERVER_PORT:-8083}"
     depends_on:

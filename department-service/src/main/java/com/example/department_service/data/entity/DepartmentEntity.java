@@ -1,12 +1,10 @@
 package com.example.department_service.data.entity;
 
-
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 
 @Entity
 @Table(name="departments")
@@ -40,5 +38,4 @@ public class DepartmentEntity {
 
     @Column(name="updated_user_id")
     private Long updatedUserId;
-
 }

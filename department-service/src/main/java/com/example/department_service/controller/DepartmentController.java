@@ -4,6 +4,7 @@ import com.example.department_service.dto.request.DepartmentRequest;
 import com.example.department_service.dto.response.DepartmentResponse;
 import com.example.department_service.data.entity.DepartmentEntity;
 import com.example.department_service.data.service.DepartmentService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,27 +12,23 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/departments") // ✅ api prefix eklendi
+@RequiredArgsConstructor
+@RequestMapping("/api/departments")
 public class DepartmentController {
 
     private final DepartmentService departmentService;
 
-    public DepartmentController(DepartmentService departmentService) {
-        this.departmentService = departmentService;
-    }
-
-    // ✅ 1. Tüm departmanları getir
+    // Tüm departmanları getir
     @GetMapping
     public ResponseEntity<List<DepartmentResponse>> getAllDepartments() {
         List<DepartmentEntity> departments = departmentService.getAllDepartments();
         List<DepartmentResponse> response = departments.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
-
         return ResponseEntity.ok(response);
     }
 
-    // ✅ 2. ID ile tek departman getir
+    // ID ile tek departman getir
     @GetMapping("/{id}")
     public ResponseEntity<DepartmentResponse> getDepartmentById(@PathVariable Long id) {
         return departmentService.getDepartmentById(id)
@@ -40,7 +37,7 @@ public class DepartmentController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // ✅ 3. Yeni departman oluştur
+    // Yeni departman oluştur
     @PostMapping
     public ResponseEntity<DepartmentResponse> createDepartment(@RequestBody DepartmentRequest request) {
         DepartmentEntity entity = convertToEntity(request);
@@ -48,7 +45,7 @@ public class DepartmentController {
         return ResponseEntity.ok(convertToResponse(created));
     }
 
-    // ✅ 4. Departman güncelle
+    // Departman güncelle
     @PutMapping("/{id}")
     public ResponseEntity<DepartmentResponse> updateDepartment(
             @PathVariable Long id,
@@ -59,14 +56,14 @@ public class DepartmentController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // ✅ 5. Departman sil (soft delete)
+    // Departman sil (soft delete)
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteDepartment(@PathVariable Long id) {
         departmentService.deleteDepartment(id);
         return ResponseEntity.noContent().build();
     }
 
-    // 🔄 Helper: Entity → Response DTO
+    // Entity → Response DTO
     private DepartmentResponse convertToResponse(DepartmentEntity entity) {
         return DepartmentResponse.builder()
                 .id(entity.getId())
@@ -78,7 +75,7 @@ public class DepartmentController {
                 .build();
     }
 
-    // 🔄 Helper: Request DTO → Entity
+    // Request DTO → Entity
     private DepartmentEntity convertToEntity(DepartmentRequest dto) {
         return DepartmentEntity.builder()
                 .name(dto.getName())

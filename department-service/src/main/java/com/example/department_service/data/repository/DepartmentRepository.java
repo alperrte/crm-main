@@ -15,5 +15,4 @@ public interface DepartmentRepository extends JpaRepository<DepartmentEntity,Lon
     // Belirli bir ID'ye sahip ve silinmemiş departmanı getirir
     Optional<DepartmentEntity> findByIdAndDeletedFalse(Long id);
 
-
 }
