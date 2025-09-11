@@ -75,14 +75,14 @@ services:
       DB_ENCRYPT: ${DB_ENCRYPT}
       DB_TRUST_SERVER_CERT: ${DB_TRUST_SERVER_CERT}
     ports:
-      - "${PERSON_SERVER_PORT:-8082}:${PERSON_SERVER_PORT:-8082}"
+      - "${PERSON_SERVER_PORT}:${PERSON_SERVER_PORT}"
     depends_on:
       mssql:
         condition: service_healthy
       db-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:${SERVER_PORT:-8082}/actuator/health > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${PERSON_SERVER_PORT}/actuator/health > /dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10

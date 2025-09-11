@@ -31,6 +31,6 @@ public class PersonEntity {
     @Column(name="is_active", nullable = false)
     private Boolean active;
 
-    @Column(name="department_id") // NULL olabilir
+    @Column(name="department_id")
     private Long departmentId;
 }

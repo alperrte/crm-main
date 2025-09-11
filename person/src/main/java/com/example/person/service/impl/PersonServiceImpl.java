@@ -78,7 +78,6 @@ public class PersonServiceImpl implements PersonService {
                 });
     }
 
-    // --- Yeni ekledik: email ile person bulma ---
     @Override
     public Optional<PersonEntity> getByEmail(String email) {
         return personRepository.findByEmail(email);

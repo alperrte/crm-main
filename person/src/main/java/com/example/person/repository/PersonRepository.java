@@ -8,15 +8,15 @@ import java.util.Optional;
 
 public interface PersonRepository extends JpaRepository<PersonEntity, Long> {
 
-    // ✅ Belirli departmandaki personları getir
+    // Belirli departmandaki personları getir
     List<PersonEntity> findByDepartmentId(Long departmentId);
 
-    // ✅ Sadece aktif personları getir
+    // Sadece aktif personları getir
     List<PersonEntity> findByActiveTrue();
 
-    // ✅ Departman atanmamış aktif personları getir (admin tarafı için)
+    // Departman atanmamış aktif personları getir (admin tarafı için)
     List<PersonEntity> findByActiveTrueAndDepartmentIdIsNull();
 
-    // ✅ Email ile person bul (UserPage -> /me için gerekli)
+    // Email ile person bul (UserPage -> /me için gerekli)
     Optional<PersonEntity> findByEmail(String email);
 }

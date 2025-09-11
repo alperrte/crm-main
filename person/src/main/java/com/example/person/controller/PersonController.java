@@ -21,7 +21,7 @@ public class PersonController {
 
     private final PersonService personService;
 
-    // ✅ Giriş yapan PERSON’un bilgilerini döner
+    // Giriş yapan PERSON’un bilgilerini döner
     @GetMapping("/me")
     public ResponseEntity<PersonResponseDto> getMe(Authentication auth) {
         String email = auth.getName();
@@ -72,7 +72,7 @@ public class PersonController {
         return ResponseEntity.noContent().build();
     }
 
-    // helpers
+    // Request DTO'yu Entity'e dönüştürür.
     private PersonEntity toEntity(PersonRequestDto r) {
         return PersonEntity.builder()
                 .name(r.getName())
@@ -83,6 +83,7 @@ public class PersonController {
                 .build();
     }
 
+    // Entity'yi Response DTO'ya dönüştürür.
     private PersonResponseDto toResponse(PersonEntity e) {
         return PersonResponseDto.builder()
                 .id(e.getId())
