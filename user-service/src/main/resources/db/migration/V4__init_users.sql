@@ -1,13 +1,11 @@
 CREATE TABLE users(
                       user_id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
                       password_hash NVARCHAR(255) NOT NULL,
                       refresh_token_hash NVARCHAR(255),
                       refresh_token_expires_at DATETIME2,
                       role NVARCHAR(255),
                       person_id BIGINT,
                       email NVARCHAR(255) NOT NULL UNIQUE,
-    -- 🔹 Burayı güncelledik: yeni alanlar
                       name NVARCHAR(100),
                       surname NVARCHAR(100),
                       phone NVARCHAR(50),

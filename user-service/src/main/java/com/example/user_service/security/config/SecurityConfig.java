@@ -1,8 +1,9 @@
 package com.example.user_service.security.config;
 
-import com.example.user_service.security.filter.JwtAuthenticationFilter;
+import com.example.user_service.security.filter.JwtFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -18,29 +19,27 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
 import java.io.IOException;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
-
-    private final JwtAuthenticationFilter jwtFilter;
-
-    public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
-        this.jwtFilter = jwtFilter;
-    }
+    private final JwtFilter jwtFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                // CSRF devre dışı bırakıldı
                 .csrf(AbstractHttpConfigurer::disable)
+                // CORS desteği açıldı
                 .cors(cors -> {})
-                .authorizeHttpRequests(reg -> reg
-                        // Preflight izin
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                // Endpoint bazlı yetkilendirme kuralları
+                .authorizeHttpRequests(reg -> reg
+                        // Preflight (OPTIONS) isteklerine izin ver
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Public endpointler
                         .requestMatchers(
                                 "/api/auth/register",
@@ -49,36 +48,36 @@ public class SecurityConfig {
                                 "/actuator",
                                 "/actuator/**"
                         ).permitAll()
-
-                        // Ticket açma: USER, PERSON, ADMIN
+                        // Ticket oluşturma → USER, PERSON, ADMIN rolleri erişebilir
                         .requestMatchers("/tickets/create").hasAnyRole("USER", "PERSON", "ADMIN")
-
-                        // Ticket yönetimi: PERSON, ADMIN
+                        // Ticket yönetimi → sadece PERSON ve ADMIN erişebilir
                         .requestMatchers("/tickets/**").hasAnyRole("PERSON", "ADMIN")
-
-                        // Admin işlemleri
+                        // Admin paneli → sadece ADMIN erişebilir
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-
-                        // diğer her şey auth ister
+                        // Yukarıdakilerin dışında kalan her endpoint → authentication zorunlu
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Basic Auth ve form login kapatıldı (sadece JWT kullanılacak)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .exceptionHandling(eh -> eh
+                        // Kimlik doğrulaması yoksa → 401 Unauthorized
                         .authenticationEntryPoint(SecurityConfig::unauthorizedEntryPoint)
+                        // Yetki yoksa → 403 Forbidden
                         .accessDeniedHandler(SecurityConfig::forbiddenHandler)
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-
         return http.build();
     }
 
+    // Şifreleri güvenli saklamak için BCrypt encoder
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    // 401 Unauthorized handler
     private static void unauthorizedEntryPoint(
             HttpServletRequest req,
             HttpServletResponse res,
@@ -89,6 +88,7 @@ public class SecurityConfig {
         writeJson(res, HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized", msg);
     }
 
+    // 403 Forbidden handler
     private static void forbiddenHandler(
             HttpServletRequest req,
             HttpServletResponse res,
@@ -99,6 +99,7 @@ public class SecurityConfig {
         writeJson(res, HttpServletResponse.SC_FORBIDDEN, "Forbidden", msg);
     }
 
+    // Hata cevaplarını JSON formatında yazdıran yardımcı metod
     private static void writeJson(HttpServletResponse res, int status, String error, String message) throws IOException {
         res.setStatus(status);
         res.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -106,7 +107,7 @@ public class SecurityConfig {
         String body = "{\"error\":\"" + escape(error) + "\",\"message\":\"" + escape(message) + "\"}";
         res.getWriter().write(body);
     }
-
+    // JSON içinde kaçış karakterlerini düzgün göstermek için yardımcı metod
     private static String escape(String s) {
         if (s == null) return "";
         return s.replace("\\", "\\\\").replace("\"", "\\\"");

@@ -6,7 +6,6 @@ import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.time.Instant;
@@ -14,29 +13,23 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * JWT üretim / doğrulama yardımcı sınıfı.
- * - HS256 imza
- * - subject: email
- * - claim'ler: userId, role, personId
- */
 @Component
 public class JwtUtil {
 
-    @Value("${JWT_SECRET:change_me_min_32_chars________________}")
+    @Value("${JWT_SECRET}")
     private String secret;
 
-    @Value("${JWT_ISSUER:user-service}")
+    @Value("${JWT_ISSUER}")
     private String issuer;
 
-    @Value("${JWT_EXPIRATION:3600}") // saniye (1 saat)
+    @Value("${JWT_EXPIRATION}") // saniye (1 saat)
     private long accessTtlSeconds;
 
     @Getter
-    @Value("${JWT_REFRESH_EXPIRATION:604800}") // saniye (7 gün)
+    @Value("${JWT_REFRESH_EXPIRATION}") // saniye (7 gün)
     private long refreshTtlSeconds;
 
-    /** Anahtar üretimi (HS256) */
+    // Anahtar üretimi (HS256)
     private Key key() {
         String s = secret;
         if (s == null || s.length() < 32) {
@@ -45,20 +38,18 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(s.getBytes(StandardCharsets.UTF_8));
     }
 
-    /** Access token üretir */
+    // Access token üretir
     public String generateAccessToken(UserEntity user) {
         Instant now = Instant.now();
-
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", user.getId());
         claims.put("role", user.getRole());
         if (user.getPersonId() != null) {
-            claims.put("personId", user.getPersonId()); // ✅ eklendi
+            claims.put("personId", user.getPersonId()); //
         }
-
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(user.getEmail()) // ✅ artık subject = email
+                .setSubject(user.getEmail()) //
                 .setIssuer(issuer)
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plusSeconds(accessTtlSeconds)))
@@ -66,12 +57,12 @@ public class JwtUtil {
                 .compact();
     }
 
-    /** Refresh token üretir */
+    // Refresh token üretir
     public String generateRefreshToken(UserEntity user) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .setClaims(Map.of("type", "refresh"))
-                .setSubject(user.getEmail()) // ✅ artık subject = email
+                .setSubject(user.getEmail())
                 .setIssuer(issuer)
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plusSeconds(refreshTtlSeconds)))
@@ -79,7 +70,7 @@ public class JwtUtil {
                 .compact();
     }
 
-    /** Token geçerli mi? */
+    // Token geçerli mi?
     public boolean isTokenValid(String token) {
         try {
             parser().parseClaimsJws(token);
@@ -89,36 +80,35 @@ public class JwtUtil {
         }
     }
 
-    /** Token geçersiz mi? */
+    // Token geçersiz mi?
     public boolean isTokenInvalid(String token) {
         return !isTokenValid(token);
     }
 
-    /** Token'dan email bilgisini döndürür */
+    // Token'dan email bilgisini döndürür
     public String extractEmail(String token) {
         return getAllClaims(token).getSubject();
     }
 
-    /** Token'dan role bilgisini döndürür */
+    // Token'dan role bilgisini döndürür
     public String extractRole(String token) {
         Object role = getAllClaims(token).get("role");
         return role != null ? role.toString() : null;
     }
 
-    /** Token'dan personId bilgisini döndürür */
+    // Token'dan personId bilgisini döndürür
     public Long extractPersonId(String token) {
         Object pid = getAllClaims(token).get("personId");
         return pid != null ? Long.parseLong(pid.toString()) : null;
     }
 
-    /** JWT parser */
     private JwtParser parser() {
         return Jwts.parserBuilder()
                 .setSigningKey(key())
                 .build();
     }
 
-    /** Tüm claim’ler */
+    // Tüm claim’ler
     private Claims getAllClaims(String token) {
         return parser().parseClaimsJws(token).getBody();
     }

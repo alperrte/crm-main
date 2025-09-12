@@ -18,8 +18,6 @@ public class UserEntity {
     @Column(name="user_id")
     private Long id;
 
-
-
     @Column(name = "email")
     private String email;
 
@@ -38,7 +36,6 @@ public class UserEntity {
     @Column(name = "refresh_token_expires_at")
     private LocalDateTime refreshTokenExpires;
 
-    // 🔹 Burayı güncelledik: yeni alanlar
     @Column(name = "name")
     private String name;
 
