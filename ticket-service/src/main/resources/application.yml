@@ -1,7 +1,5 @@
-# src/main/resources/application.yml
 server:
-  # Önce SERVER_PORT, yoksa TICKET_SERVICE_PORT, o da yoksa 8084
-  port: ${SERVER_PORT:${TICKET_SERVICE_PORT:8084}}
+  port: ${TICKET_SERVICE_PORT}
 
 spring:
   application:
@@ -9,15 +7,14 @@ spring:
 
   datasource:
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
-    url: jdbc:sqlserver://${DB_HOST:mssql}:${DB_PORT:1433};databaseName=${DB_NAME:crmdb};encrypt=${DB_ENCRYPT:true};trustServerCertificate=${DB_TRUST_SERVER_CERT:true}
-    username: ${DB_USER:sa}
-    # DB_PASSWORD yoksa MSSQL_SA_PASSWORD fallback
+    url: jdbc:sqlserver://${DB_HOST}:${DB_PORT};databaseName=${DB_NAME};encrypt=${DB_ENCRYPT};trustServerCertificate=${DB_TRUST_SERVER_CERT}
+    username: ${DB_USER}
     password: ${DB_PASSWORD:${MSSQL_SA_PASSWORD}}
 
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: ${SPRING_JPA_SHOW_SQL:false}
+    show-sql: ${SPRING_JPA_SHOW_SQL}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.SQLServerDialect
@@ -32,10 +29,9 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
-  issuer: ${JWT_ISSUER:user-service}
-  roles-claim: role   # sabit admin için 'role' claim'i okunacak
+  issuer: ${JWT_ISSUER}
+  roles-claim: role
 
-# Actuator health/info testleri için
 management:
   endpoints:
     web:

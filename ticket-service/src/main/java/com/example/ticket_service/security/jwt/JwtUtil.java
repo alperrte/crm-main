@@ -1,4 +1,3 @@
-    // src/main/java/com/example/ticket_service/security/jwt/JwtUtil.java
     package com.example.ticket_service.security.jwt;
 
     import io.jsonwebtoken.Claims;
@@ -6,28 +5,17 @@
     import io.jsonwebtoken.security.Keys;
     import org.springframework.beans.factory.annotation.Value;
     import org.springframework.stereotype.Component;
-
     import javax.crypto.SecretKey;
     import java.nio.charset.StandardCharsets;
     import java.util.ArrayList;
     import java.util.Collection;
     import java.util.List;
 
-    /**
-     * - HS256 secret'ı .yml/.env'den okur
-     * - issuer belirtilmişse doğrular (boş bırakılırsa kontrol etmez)
-     * - rolleri şu claim adlarından ve formatlardan okur:
-     *   roles-claim (yml'deki), "roles", "role", "authorities"
-     *   String  -> "ADMIN"
-     *   List    -> ["ADMIN", "EMPLOYEE"]
-     *   Array   -> ["ADMIN", ...]
-     */
     @Component
     public class JwtUtil {
-
         private final SecretKey key;
-        private final String issuer;      // boş ise issuer kontrolü YOK
-        private final String rolesClaim;  // öncelikli claim adı (yml'den)
+        private final String issuer;
+        private final String rolesClaim;
 
         public JwtUtil(
                 @Value("${jwt.secret}") String secret,
@@ -39,7 +27,6 @@
             this.rolesClaim = rolesClaim;
         }
 
-        /** Geçerli imzalı JWT'yi parse eder; issuer boş değilse doğrular. */
         public Claims parse(String token) {
             var builder = Jwts.parserBuilder().setSigningKey(key);
             if (!issuer.isBlank()) {
@@ -48,7 +35,6 @@
             return builder.build().parseClaimsJws(token).getBody();
         }
 
-        /** roles|role|authorities + String/List/Array hepsini destekler. */
         public List<String> extractRoles(Claims claims) {
             for (String name : List.of(rolesClaim, "roles", "role", "authorities")) {
                 Object raw = claims.get(name);
@@ -69,6 +55,6 @@
                     return out;
                 }
             }
-            return List.of(); // rol bulunamazsa boş döner (JwtFilter'da fallback uygulayacağız)
+            return List.of();
         }
     }

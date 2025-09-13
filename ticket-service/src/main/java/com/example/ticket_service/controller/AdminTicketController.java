@@ -1,4 +1,3 @@
-// controller/AdminTicketController.java
 package com.example.ticket_service.controller;
 
 import com.example.ticket_service.dto.response.TicketResponse;
@@ -12,7 +11,6 @@ import java.util.List;
 @RequestMapping("/api/admin/tickets")
 @RequiredArgsConstructor
 public class AdminTicketController {
-
     private final TicketService ticketService;
 
     @GetMapping

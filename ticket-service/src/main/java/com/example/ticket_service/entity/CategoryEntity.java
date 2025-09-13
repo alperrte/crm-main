@@ -1,16 +1,16 @@
-// entity/CategoryEntity.java
 package com.example.ticket_service.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "categories")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class CategoryEntity {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "category_id")

@@ -1,4 +1,3 @@
-// service/CategoryService.java
 package com.example.ticket_service.service;
 
 import com.example.ticket_service.dto.response.CategoryResponse;
@@ -6,5 +5,6 @@ import com.example.ticket_service.dto.response.CategoryResponse;
 import java.util.List;
 
 public interface CategoryService {
+    //Aktif kategorileri getirir.
     List<CategoryResponse> listActive();
 }

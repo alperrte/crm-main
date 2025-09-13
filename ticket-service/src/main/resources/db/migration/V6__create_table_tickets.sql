@@ -1,4 +1,3 @@
--- src/main/resources/db/migration/V6__create_table_tickets.sql
 CREATE TABLE tickets(
                         ticket_id BIGINT IDENTITY(1,1) PRIMARY KEY,
                         issue NVARCHAR(MAX) NOT NULL,
