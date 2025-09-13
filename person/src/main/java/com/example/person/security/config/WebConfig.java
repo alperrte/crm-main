@@ -12,7 +12,6 @@ import java.util.List;
 
 @Configuration
 public class WebConfig {
-
     @Value("${app.cors.allowed-origins:*}")
     private String allowedOrigins;
 

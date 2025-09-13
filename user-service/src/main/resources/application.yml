@@ -1,19 +1,19 @@
 server:
-  port: ${SERVER_PORT:${USER_SERVER_PORT:8083}}
+  port: ${USER_SERVER_PORT}
 
 spring:
   application:
     name: user-service
   datasource:
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
-    url: jdbc:sqlserver://${DB_HOST:mssql}:${DB_PORT:1433};databaseName=${DB_NAME:crmdb};encrypt=${DB_ENCRYPT:true};trustServerCertificate=${DB_TRUST_SERVER_CERT:true}
-    username: ${DB_USER:sa}
+    url: jdbc:sqlserver://${DB_HOST}:${DB_PORT};databaseName=${DB_NAME};encrypt=${DB_ENCRYPT};trustServerCertificate=${DB_TRUST_SERVER_CERT}
+    username: ${DB_USER}
     password: ${DB_PASSWORD:${MSSQL_SA_PASSWORD}}
 
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: ${SPRING_JPA_SHOW_SQL:false}
+    show-sql: ${SPRING_JPA_SHOW_SQL}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.SQLServerDialect
@@ -26,10 +26,9 @@ spring:
     baseline-on-migrate: true
 
   jwt:
-    # .env yoksa güvenli fallback olsun diye bir varsayılan bırakıyoruz
-    secret: ${JWT_SECRET:change_me_min_32_chars}
-    expiration: ${JWT_EXPIRATION:900000}
-    refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+    secret: ${JWT_SECRET}
+    expiration: ${JWT_EXPIRATION}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION}
     enabled: true
 
 

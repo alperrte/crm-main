@@ -1,6 +1,6 @@
 package com.example.department_service.security.config;
 
-import com.example.department_service.security.filter.JwtAuthFilter;
+import com.example.department_service.security.filter.JwtFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,28 +12,19 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
-
-    private final JwtAuthFilter jwtAuthFilter;
-
+    private final JwtFilter jwtFilter;
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .cors(c -> {}) // CORS aktif
                 .csrf(csrf -> csrf.disable()) // CSRF kapalı
-
-                // Session yok → tamamen stateless
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // Endpoint kuralları
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/**").permitAll() // health/info serbest
-                        .requestMatchers("/api/departments/**").authenticated() // ✅ artık doğru endpoint
+                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/api/departments/**").authenticated()
                         .anyRequest().authenticated()
                 )
-
-                // JWT filter’ı username/password filtresinden önce devreye al
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

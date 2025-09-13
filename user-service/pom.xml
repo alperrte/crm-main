@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- User microservice -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- Monorepo parent (sürümler ve ortak plugin yönetimi buradan) -->
     <parent>
         <groupId>com.crm</groupId>
         <artifactId>crm-parent</artifactId>
@@ -15,7 +13,7 @@
 
     <artifactId>user-service</artifactId>
     <name>user-service</name>
-    <description>User microservice (MSSQL + JWT)</description>
+    <description>User microservice (MSSQ+ JWTL )</description>
 
     <dependencies>
         <!-- Web (Servlet stack - MVC Controller'lar için) -->

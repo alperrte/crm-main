@@ -21,8 +21,7 @@ import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
-public class JwtAuthFilter extends OncePerRequestFilter {
-
+public class JwtFilter extends OncePerRequestFilter {
     private final JwtUtil jwt;
 
     @Override
@@ -30,34 +29,28 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     HttpServletResponse res,
                                     FilterChain chain)
             throws ServletException, IOException {
-
         String path = req.getRequestURI();
+        // Actuator endpoint'leri JWT kontrolüne dahil etme
         if (path.startsWith("/actuator")) {
             chain.doFilter(req, res);
             return;
         }
-
+        // Authorization header'ı kontrol et (Bearer <token> formatında olmalı)
         String header = req.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
             try {
                 Claims claims = jwt.parse(token);
-
-                // 🔑 Roller
+                // Roller (claim'den alınır)
                 var roles = jwt.extractRoles(claims);
                 if (roles == null || roles.isEmpty()) {
-                    roles = List.of("ADMIN"); // fallback
+                    roles = List.of("ADMIN");
                 }
-
                 var auths = roles.stream()
                         .map(r -> r.startsWith("ROLE_") ? r : "ROLE_" + r)
                         .map(SimpleGrantedAuthority::new)
                         .toList();
-
-                // 🔑 Principal olarak email/sub set et
                 String email = claims.getSubject();
-
-                // Ek metadata
                 Map<String, Object> details = new HashMap<>();
                 if (claims.get("deptId") != null) {
                     details.put("deptId", claims.get("deptId"));
@@ -68,21 +61,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 if (claims.get("surname") != null) {
                     details.put("surname", claims.get("surname"));
                 }
-
                 var authentication =
                         new UsernamePasswordAuthenticationToken(email, null, auths);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
-
-                // Ek detayları ayrıca kaydet
                 authentication.setDetails(details);
-
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-
             } catch (Exception e) {
                 SecurityContextHolder.clearContext();
             }
         }
-
         chain.doFilter(req, res);
     }
 }
