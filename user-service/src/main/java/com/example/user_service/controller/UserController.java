@@ -19,7 +19,7 @@ import java.util.Map;
 public class UserController {
     private final UserService userService;
 
-    //ADMIN kaydı
+    // ADMIN kaydı
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/register-admin")
     public ResponseEntity<UserResponse> registerAdmin(@Valid @RequestBody RegisterRequest request) {

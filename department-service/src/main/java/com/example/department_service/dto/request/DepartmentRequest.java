@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class DepartmentRequest {
-
     private String name;
     private Long parentDepartmentId;
     private Long updatedUserId;

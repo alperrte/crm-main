@@ -10,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +17,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/admin/users")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')") // ✅ sadece ADMIN erişebilir
+@PreAuthorize("hasRole('ADMIN')")
 @Slf4j
 public class AdminController {
 
@@ -26,13 +25,13 @@ public class AdminController {
     private final PasswordEncoder passwordEncoder;
     private final PersonClient personClient;
 
-    // ✅ TÜM kullanıcıları listele
+    // TÜM kullanıcıları listele
     @GetMapping
     public ResponseEntity<List<UserEntity>> getAllUsers() {
         return ResponseEntity.ok(userRepository.findAll());
     }
 
-    // ✅ Tek kullanıcı detayını getir
+    // Tek kullanıcı detayını getir
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable Long id) {
         return userRepository.findById(id)
@@ -41,7 +40,7 @@ public class AdminController {
                         .body(Map.of("error", "User not found")));
     }
 
-    // ✅ Person’dan User oluştur (Kullanıcı Yap)
+    // Person’dan User oluştur (Kullanıcı Yap)
     @PostMapping("/from-person/{personId}")
     public ResponseEntity<?> createUserFromPerson(@PathVariable Long personId,
                                                   @RequestBody Map<String, String> payload,
@@ -72,7 +71,7 @@ public class AdminController {
                     .email(email)
                     .phone((String) person.get("phone"))
                     .passwordHash(passwordEncoder.encode(rawPassword))
-                    .role("USER") // ✅ başlangıç rolü
+                    .role("USER")
                     .build();
 
             userRepository.save(user);
@@ -86,7 +85,7 @@ public class AdminController {
         }
     }
 
-    // ✅ Rol güncelleme
+    // Rol güncelleme
     @PutMapping("/{id}/role")
     public ResponseEntity<?> updateUserRole(@PathVariable Long id, @RequestParam("role") String role) {
         return userRepository.findById(id)
@@ -106,7 +105,7 @@ public class AdminController {
                         .body(Map.of("error", "User not found")));
     }
 
-    // ✅ Kullanıcı sil
+    // Kullanıcı sil
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         return userRepository.findById(id)

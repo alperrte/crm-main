@@ -6,14 +6,12 @@ import com.example.person.repository.PersonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/persons")
 @RequiredArgsConstructor
-public class AdminController { // ✅ sınıf adı netleştirildi
-
+public class AdminController {
     private final PersonRepository personRepository;
 
     // Aktif tüm personlar

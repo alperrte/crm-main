@@ -35,7 +35,6 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 // CORS desteği açıldı
                 .cors(cors -> {})
-
                 // Endpoint bazlı yetkilendirme kuralları
                 .authorizeHttpRequests(reg -> reg
                         // Preflight (OPTIONS) isteklerine izin ver

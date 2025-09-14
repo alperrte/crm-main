@@ -5,19 +5,16 @@ import com.example.department_service.data.repository.DepartmentRepository;
 import com.example.department_service.data.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class DepartmentServiceImpl implements DepartmentService {
-
     private final DepartmentRepository departmentRepository;
 
     @Override
     public List<DepartmentEntity> getAllDepartments() {
-
         return departmentRepository.findAllByDeletedFalse();
     }
 

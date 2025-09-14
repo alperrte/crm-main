@@ -5,20 +5,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
 @Slf4j
 public class PersonClient {
-
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${person.service.url}")
-    private String personServiceUrl;   // ör: http://person-service:8082
+    private String personServiceUrl;
 
-    // ✅ Var olan Person getir
+    // Var olan Person getir
     public Map<String, Object> getPersonById(Long personId, String jwtToken) {
         HttpHeaders headers = new HttpHeaders();
         if (jwtToken != null) {
@@ -46,7 +44,7 @@ public class PersonClient {
         return null;
     }
 
-    // ✅ Yeni Person oluştur (opsiyonel kullanım)
+    // Yeni Person oluştur
     public Long createPerson(String name, String surname, String email, String phone,
                              Long departmentId, String jwtToken) {
         Map<String, Object> req = new HashMap<>();
@@ -84,7 +82,7 @@ public class PersonClient {
         return null;
     }
 
-    // ✅ Person sil
+    // Person sil
     public void deletePerson(Long personId, String jwtToken) {
         HttpHeaders headers = new HttpHeaders();
         if (jwtToken != null) {

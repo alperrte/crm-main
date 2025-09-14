@@ -5,14 +5,12 @@ import com.example.person.repository.PersonRepository;
 import com.example.person.service.PersonService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class PersonServiceImpl implements PersonService {
-
     private final PersonRepository personRepository;
 
     @Override
@@ -57,7 +55,6 @@ public class PersonServiceImpl implements PersonService {
     }
 
     // --- Admin ihtiyacı ---
-
     @Override
     public List<PersonEntity> getUnassignedPersons() {
         return personRepository.findByActiveTrueAndDepartmentIdIsNull();

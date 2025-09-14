@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -18,7 +17,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/persons")
 @RequiredArgsConstructor
 public class PersonController {
-
     private final PersonService personService;
 
     // Giriş yapan PERSON’un bilgilerini döner
@@ -46,7 +44,7 @@ public class PersonController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // ✅ sadece Person kaydı yapar (login yok!)
+    // sadece Person kaydı yapar (login yok)
     @PostMapping
     public ResponseEntity<PersonResponseDto> createPerson(@RequestBody PersonRequestDto req) {
         PersonEntity entity = toEntity(req);

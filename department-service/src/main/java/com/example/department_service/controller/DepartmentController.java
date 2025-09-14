@@ -7,7 +7,6 @@ import com.example.department_service.data.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -15,7 +14,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @RequestMapping("/api/departments")
 public class DepartmentController {
-
     private final DepartmentService departmentService;
 
     // Tüm departmanları getir
