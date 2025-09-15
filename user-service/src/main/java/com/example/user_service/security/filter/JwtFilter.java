@@ -27,14 +27,21 @@ public class JwtFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // Header yoksa veya Bearer değilse -> devam
+        String path = request.getRequestURI();
+
+        // 🔹 Login ve refresh endpointlerini token kontrolünden muaf tut
+        if (path.startsWith("/api/auth/login") || path.startsWith("/api/auth/refresh")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String authHeader = request.getHeader("Authorization");
+        // Header yoksa veya Bearer değilse -> devam
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Token al
         String token = authHeader.substring(7);
         // Zaten kimlik set edilmişse tekrar doğrulamayız
         if (SecurityContextHolder.getContext().getAuthentication() != null) {
@@ -42,7 +49,7 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Token geçersiz veya süresi dolmuşsa -> 401 dön
+        // Token geçersizse -> 401 dön
         if (jwtUtil.isTokenInvalid(token)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
@@ -51,19 +58,16 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Claim'lerden email ve role bilgilerini al
+        // Token geçerli, claim'lerden email ve role bilgilerini al
         String email = jwtUtil.extractEmail(token);
         String role = jwtUtil.extractRole(token);
-        // Rol yoksa login olmasın
         if (role == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Authentication oluştur ve SecurityContext'e koy
         List<SimpleGrantedAuthority> authorities =
                 List.of(new SimpleGrantedAuthority("ROLE_" + role));
-
         var authentication =
                 new UsernamePasswordAuthenticationToken(email, null, authorities);
         SecurityContextHolder.getContext().setAuthentication(authentication);
