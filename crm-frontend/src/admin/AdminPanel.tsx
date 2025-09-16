@@ -202,7 +202,7 @@ const AdminPanel: React.FC = () => {
                                 <td className="px-4 py-3">{t.id}</td>
                                 <td className="px-4 py-3">
                                     {t.createdDate
-                                        ? new Date(t.createdDate).toLocaleString()
+                                        ? new Date(t.createdDate).toLocaleDateString("tr-TR")
                                         : "-"}
                                 </td>
                                 <td className="px-4 py-3">
