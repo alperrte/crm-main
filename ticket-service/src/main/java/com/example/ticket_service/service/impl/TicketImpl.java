@@ -20,6 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -34,13 +35,12 @@ public class TicketImpl implements TicketService {
     private final TicketAssignmentRepository assignmentRepository;
     private final JwtUtil jwtUtil;
 
-    // 🔹 Artık .env’den okunuyor
     @Value("${PERSON_SERVICE_URL}")
     private String personServiceUrl;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    // Helper: JWT'den personId oku
+    // === Helper: JWT’den personId oku ===
     private Long currentPersonId() {
         Authentication a = SecurityContextHolder.getContext().getAuthentication();
         if (a == null) return null;
@@ -73,7 +73,7 @@ public class TicketImpl implements TicketService {
                 .active(true)
                 .createdDate(LocalDateTime.now())
                 .creatorCustomer(customer)
-                .employee(false) // müşteri açtı
+                .employee(false)
                 .build();
         ticket = ticketRepository.save(ticket);
 
@@ -253,6 +253,7 @@ public class TicketImpl implements TicketService {
         return toResponse(ticket);
     }
 
+    // === My Tickets ===
     @Override
     public List<TicketResponse> listMyAssigned(Long personId) {
         return assignmentRepository.findMyAssigned(personId).stream()
@@ -287,7 +288,7 @@ public class TicketImpl implements TicketService {
                 .toList();
     }
 
-    // === Helper: Ticket'i DTO'ya dönüştür ===
+    // === Helper: Ticket’i DTO’ya dönüştür ===
     private TicketResponse toResponse(TicketEntity t) {
         List<TicketAssignmentEntity> all = assignmentRepository.findByTicketId(t.getId());
         TicketAssignmentEntity latest = all.stream()
@@ -301,86 +302,59 @@ public class TicketImpl implements TicketService {
                         a -> Optional.ofNullable(a.getCompletedDate()).orElse(LocalDateTime.MIN)))
                 .orElse(null);
 
-        // Ticket'ı açan çalışanın bilgileri
+        // === Creator bilgisi ===
         String creatorEmail = null;
         String creatorName = null;
         String creatorSurname = null;
 
         if (t.getCreatorPersonId() != null) {
-            try {
-                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-                String token = auth != null ? String.valueOf(auth.getCredentials()) : null;
-
-                HttpHeaders headers = new HttpHeaders();
-                if (token != null) {
-                    headers.setBearerAuth(token);
-                }
-                HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-                ResponseEntity<Map> response = restTemplate.exchange(
-                        personServiceUrl + t.getCreatorPersonId(),
-                        HttpMethod.GET,
-                        entity,
-                        Map.class
-                );
-
-                Map<?, ?> person = response.getBody();
-                if (person != null) {
-                    creatorEmail = (String) person.get("email");
-                    creatorName = (String) person.get("name");
-                    creatorSurname = (String) person.get("surname");
-                }
-            } catch (Exception e) {
-                log.warn("Person-service (creator) çağrısı başarısız oldu: {}", e.getMessage());
+            Map<?, ?> person = fetchPerson(t.getCreatorPersonId());
+            if (person != null) {
+                creatorEmail = (String) person.get("email");
+                creatorName = (String) person.get("name");
+                creatorSurname = (String) person.get("surname");
             }
         }
 
-        // Üstlenen çalışanın bilgileri
+        // === Assignee bilgisi ===
         String assigneeEmail = null;
         String assigneeName = null;
         String assigneeSurname = null;
-
         if (latest != null && latest.getPersonId() != null) {
-            try {
-                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-                String token = auth != null ? String.valueOf(auth.getCredentials()) : null;
-
-                HttpHeaders headers = new HttpHeaders();
-                if (token != null) {
-                    headers.setBearerAuth(token);
-                }
-                HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-                ResponseEntity<Map> response = restTemplate.exchange(
-                        personServiceUrl + latest.getPersonId(),
-                        HttpMethod.GET,
-                        entity,
-                        Map.class
-                );
-
-                Map<?, ?> person = response.getBody();
-                if (person != null) {
-                    assigneeEmail = (String) person.get("email");
-                    assigneeName = (String) person.get("name");
-                    assigneeSurname = (String) person.get("surname");
-                }
-            } catch (Exception e) {
-                log.warn("Person-service (assignee) çağrısı başarısız oldu: {}", e.getMessage());
+            Map<?, ?> person = fetchPerson(latest.getPersonId());
+            if (person != null) {
+                assigneeEmail = (String) person.get("email");
+                assigneeName = (String) person.get("name");
+                assigneeSurname = (String) person.get("surname");
             }
         }
 
+        // === Departman adları ===
+        String deptName = null;
+        if (latest != null && latest.getDepartmentId() != null) {
+            deptName = categoryRepository.findByTargetDepartmentId(latest.getDepartmentId())
+                    .map(CategoryEntity::getDisplayName) // ✅ doğru alan
+                    .orElse("Departman #" + latest.getDepartmentId());
+        }
+
+        String fromDeptName = null;
+        if (lastTransferred != null && lastTransferred.getDepartmentId() != null) {
+            fromDeptName = categoryRepository.findByTargetDepartmentId(lastTransferred.getDepartmentId())
+                    .map(CategoryEntity::getDisplayName)
+                    .orElse("Departman #" + lastTransferred.getDepartmentId());
+        }
+
+        String toDeptName = deptName;
+
         return TicketResponse.builder()
                 .id(t.getId())
-                // müşteri bilgileri
                 .customerEmail(t.getCreatorCustomer() != null ? t.getCreatorCustomer().getEmail() : null)
                 .customerName(t.getCreatorCustomer() != null ? t.getCreatorCustomer().getName() : null)
                 .customerSurname(t.getCreatorCustomer() != null ? t.getCreatorCustomer().getSurname() : null)
                 .customerPhone(t.getCreatorCustomer() != null ? t.getCreatorCustomer().getPhone() : null)
-                // çalışan bilgileri
                 .creatorPersonEmail(creatorEmail)
                 .creatorPersonName(creatorName)
                 .creatorPersonSurname(creatorSurname)
-                // temel ticket
                 .issue(t.getIssue())
                 .priority(t.getPriority())
                 .active(t.getActive())
@@ -388,14 +362,41 @@ public class TicketImpl implements TicketService {
                 .closedDate(t.getClosedDate())
                 .status(latest != null ? latest.getStatus() : null)
                 .departmentId(latest != null ? latest.getDepartmentId() : null)
+                .departmentName(deptName)
                 .assigneePersonId(latest != null ? latest.getPersonId() : null)
                 .employee(t.getEmployee())
                 .fromDepartmentId(lastTransferred != null ? lastTransferred.getDepartmentId() : null)
+                .fromDepartmentName(fromDeptName)
                 .toDepartmentId(latest != null ? latest.getDepartmentId() : null)
-                // üstlenen kişi bilgileri
+                .toDepartmentName(toDeptName)
                 .assigneeEmail(assigneeEmail)
                 .assigneeName(assigneeName)
                 .assigneeSurname(assigneeSurname)
                 .build();
+    }
+
+    // === Helper: Person fetch ===
+    private Map<?, ?> fetchPerson(Long personId) {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String token = auth != null ? String.valueOf(auth.getCredentials()) : null;
+
+            HttpHeaders headers = new HttpHeaders();
+            if (token != null) {
+                headers.setBearerAuth(token);
+            }
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    personServiceUrl + personId,
+                    HttpMethod.GET,
+                    entity,
+                    Map.class
+            );
+            return response.getBody();
+        } catch (Exception e) {
+            log.warn("Person-service çağrısı başarısız oldu: {}", e.getMessage());
+            return null;
+        }
     }
 }

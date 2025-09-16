@@ -182,6 +182,7 @@ const AdminPanel: React.FC = () => {
                             <th className="px-4 py-3">Tarih</th>
                             <th className="px-4 py-3">Ad Soyad</th>
                             <th className="px-4 py-3">Email</th>
+                            <th className="px-4 py-3">Departman</th>
                             <th className="px-4 py-3">Açıklama</th>
                             <th className="px-4 py-3">Öncelik</th>
                             <th className="px-4 py-3">Aktif</th>
@@ -205,25 +206,26 @@ const AdminPanel: React.FC = () => {
                                     {`${t.name ?? ""} ${t.surname ?? ""}`}
                                 </td>
                                 <td className="px-4 py-3">{t.email ?? "-"}</td>
+                                <td className="px-4 py-3">{t.departmentName ?? "-"}</td>
                                 <td className="px-4 py-3 max-w-xs truncate hover:whitespace-normal hover:bg-[#1a1a2e]/95 hover:rounded-lg hover:p-2 hover:shadow-xl">
                                     {t.description}
                                 </td>
                                 <td className="px-4 py-3">
-          <span className={priorityClass(t.priority)}>
-            {t.priority}
-          </span>
+                                        <span className={priorityClass(t.priority)}>
+                                            {t.priority}
+                                        </span>
                                 </td>
                                 <td className="px-4 py-3">
-          <span className={statusClass(t.active)}>
-            {t.active ? "Evet" : "Hayır"}
-          </span>
+                                        <span className={statusClass(t.active)}>
+                                            {t.active ? "Evet" : "Hayır"}
+                                        </span>
                                 </td>
                             </tr>
                         ))}
                         {filteredTickets.length === 0 && (
                             <tr>
                                 <td
-                                    colSpan={7}
+                                    colSpan={8}
                                     className="text-center text-gray-400 py-10"
                                 >
                                     Ticket bulunamadı

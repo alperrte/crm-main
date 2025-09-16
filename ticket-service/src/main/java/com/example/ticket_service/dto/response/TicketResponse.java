@@ -28,6 +28,7 @@ public record TicketResponse(
         // Anlık durum
         String status, // OPEN | IN_PROGRESS | TRANSFERRED | DONE
         Long departmentId, // şu anki departman
+        String departmentName,
 
         // Opsiyonel zengin alanlar
         Long assigneePersonId,       // üstlenen kişi

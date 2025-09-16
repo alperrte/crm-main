@@ -53,6 +53,7 @@ export interface AdminTicket {
     creatorPersonEmail?: string | null;   // ✅ çalışan email
     creatorPersonName?: string | null;
     creatorPersonSurname?: string | null;
+    departmentName?: string;
 }
 
 export interface DeptTicket {
@@ -138,7 +139,8 @@ export const getAdminTickets = async (): Promise<AdminTicket[]> => {
             createdDate: t.createdDate,
             closedDate: t.closedDate,
             employee: t.employee,
-            creatorPersonEmail: t.creatorPersonEmail, // çalışan açtıysa
+            creatorPersonEmail: t.creatorPersonEmail,
+            departmentName: t.departmentName ?? "-", // ✅ departman adı ekledik
         };
     });
 };
