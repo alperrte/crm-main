@@ -40,15 +40,19 @@ export interface PublicTicketFormData {
 
 export interface AdminTicket {
     id: number;
-    email: string;
-    name: string;
-    surname: string;
+    email: string | null;   // müşteri email
+    name: string | null;
+    surname: string | null;
     phone: string | null;
     description: string;
     priority: string;
     active: boolean;
     createdDate?: string;
-    closedDate?: string;   // ✅ admin ticket için de ekledim
+    closedDate?: string;
+    employee?: boolean; // ✅ backend’den geliyor
+    creatorPersonEmail?: string | null;   // ✅ çalışan email
+    creatorPersonName?: string | null;
+    creatorPersonSurname?: string | null;
 }
 
 export interface DeptTicket {
@@ -121,15 +125,19 @@ export const getAdminTickets = async (): Promise<AdminTicket[]> => {
     const arr = res.data as Array<any>;
     return arr.map((t) => ({
         id: t.id,
-        email: t.customerEmail,
-        name: t.customerName,
-        surname: t.customerSurname,
-        phone: t.customerPhone,
+        email: t.customerEmail ?? null,   // müşteri email
+        name: t.customerName ?? null,
+        surname: t.customerSurname ?? null,
+        phone: t.customerPhone ?? null,
         description: t.issue,
         priority: t.priority,
         active: t.active,
         createdDate: t.createdDate,
-        closedDate: t.closedDate,   // ✅ map içine eklendi
+        closedDate: t.closedDate,
+        employee: t.employee ?? false,                // ✅
+        creatorPersonEmail: t.creatorPersonEmail ?? null, // ✅
+        creatorPersonName: t.creatorPersonName ?? null,   // ✅
+        creatorPersonSurname: t.creatorPersonSurname ?? null // ✅
     }));
 };
 

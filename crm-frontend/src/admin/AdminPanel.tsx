@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { getAdminTickets, AdminTicket } from "../api/ticketApi";
-import { Link, useNavigate } from "react-router-dom"; // ✅ useNavigate eklendi
+import { Link, useNavigate } from "react-router-dom";
 
 const AdminPanel: React.FC = () => {
     const [tickets, setTickets] = useState<AdminTicket[]>([]);
     const [tErr, setTErr] = useState<string>("");
     const [menuOpen, setMenuOpen] = useState(false);
+    const [tab, setTab] = useState<"customer" | "employee">("customer");
 
-    const navigate = useNavigate(); // ✅ yönlendirme hook'u
+    const navigate = useNavigate();
 
     // Ticketları çek
     useEffect(() => {
@@ -18,8 +19,8 @@ const AdminPanel: React.FC = () => {
 
     // ✅ Çıkış fonksiyonu
     const handleLogout = () => {
-        localStorage.removeItem("token"); // varsa JWT token temizle
-        navigate("/login"); // login sayfasına yönlendir
+        localStorage.removeItem("token");
+        navigate("/login");
     };
 
     // Priority badge class
@@ -42,6 +43,11 @@ const AdminPanel: React.FC = () => {
             ? "bg-gradient-to-r from-green-400 to-emerald-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow"
             : "bg-gradient-to-r from-gray-400 to-gray-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow";
 
+    // ✅ Tab’a göre filtrelenmiş ticket listesi
+    const filteredTickets = tickets.filter((t) =>
+        tab === "customer" ? !t.employee : t.employee
+    );
+
     return (
         <div className="min-h-screen p-6 bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] text-white">
             <div className="max-w-7xl mx-auto">
@@ -55,7 +61,6 @@ const AdminPanel: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        {/* ✅ Çıkış Yap Butonu */}
                         <button
                             onClick={handleLogout}
                             className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg shadow-lg transition font-semibold"
@@ -63,7 +68,6 @@ const AdminPanel: React.FC = () => {
                             Çıkış Yap
                         </button>
 
-                        {/* Kontroller Dropdown */}
                         <div className="relative">
                             <button
                                 onClick={() => setMenuOpen(!menuOpen)}
@@ -101,16 +105,18 @@ const AdminPanel: React.FC = () => {
                 </div>
 
                 {/* Stats bar */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
                     <div className="bg-indigo-500/10 border border-white/10 p-4 rounded-xl text-center">
-                        <div className="text-2xl font-bold text-indigo-400">{tickets.length}</div>
-                        <div className="text-sm text-gray-400">Toplam Ticket</div>
+                        <div className="text-2xl font-bold text-indigo-400">
+                            {tickets.length}
+                        </div>
+                        <div className="text-sm text-gray-400">Toplam</div>
                     </div>
                     <div className="bg-indigo-500/10 border border-white/10 p-4 rounded-xl text-center">
-                        <div className="text-2xl font-bold text-red-400">
-                            {tickets.filter((t) => t.priority === "HIGH").length}
+                        <div className="text-2xl font-bold text-cyan-400">
+                            {tickets.filter((t) => t.priority === "LOW").length}
                         </div>
-                        <div className="text-sm text-gray-400">Yüksek Öncelik</div>
+                        <div className="text-sm text-gray-400">Düşük Öncelik</div>
                     </div>
                     <div className="bg-indigo-500/10 border border-white/10 p-4 rounded-xl text-center">
                         <div className="text-2xl font-bold text-yellow-400">
@@ -119,11 +125,47 @@ const AdminPanel: React.FC = () => {
                         <div className="text-sm text-gray-400">Orta Öncelik</div>
                     </div>
                     <div className="bg-indigo-500/10 border border-white/10 p-4 rounded-xl text-center">
+                        <div className="text-2xl font-bold text-red-400">
+                            {tickets.filter((t) => t.priority === "HIGH").length}
+                        </div>
+                        <div className="text-sm text-gray-400">Yüksek Öncelik</div>
+                    </div>
+                    <div className="bg-indigo-500/10 border border-white/10 p-4 rounded-xl text-center">
                         <div className="text-2xl font-bold text-green-400">
                             {tickets.filter((t) => t.active).length}
                         </div>
                         <div className="text-sm text-gray-400">Aktif</div>
                     </div>
+                    <div className="bg-indigo-500/10 border border-white/10 p-4 rounded-xl text-center">
+                        <div className="text-2xl font-bold text-gray-400">
+                            {tickets.filter((t) => !t.active).length}
+                        </div>
+                        <div className="text-sm text-gray-400">Kapalı</div>
+                    </div>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex gap-4 mb-4">
+                    <button
+                        onClick={() => setTab("customer")}
+                        className={`px-4 py-2 rounded-lg transition ${
+                            tab === "customer"
+                                ? "bg-indigo-600"
+                                : "bg-gray-600 hover:bg-gray-500"
+                        }`}
+                    >
+                        Müşteri Ticketları
+                    </button>
+                    <button
+                        onClick={() => setTab("employee")}
+                        className={`px-4 py-2 rounded-lg transition ${
+                            tab === "employee"
+                                ? "bg-indigo-600"
+                                : "bg-gray-600 hover:bg-gray-500"
+                        }`}
+                    >
+                        Çalışan Ticketları
+                    </button>
                 </div>
 
                 {/* Ticket Table */}
@@ -138,16 +180,19 @@ const AdminPanel: React.FC = () => {
                         <tr className="bg-gradient-to-r from-indigo-500 to-purple-600 text-left">
                             <th className="px-4 py-3">ID</th>
                             <th className="px-4 py-3">Tarih</th>
-                            <th className="px-4 py-3">Müşteri</th>
+                            <th className="px-4 py-3">Ad Soyad</th>
                             <th className="px-4 py-3">Email</th>
                             <th className="px-4 py-3">Telefon</th>
+                            {tab === "employee" && (
+                                <th className="px-4 py-3">Açan Email</th>
+                            )}
                             <th className="px-4 py-3">Açıklama</th>
                             <th className="px-4 py-3">Öncelik</th>
                             <th className="px-4 py-3">Aktif</th>
                         </tr>
                         </thead>
                         <tbody>
-                        {tickets.map((t, i) => (
+                        {filteredTickets.map((t, i) => (
                             <tr
                                 key={t.id}
                                 className={`transition hover:bg-indigo-500/10 ${
@@ -160,9 +205,16 @@ const AdminPanel: React.FC = () => {
                                         ? new Date(t.createdDate).toLocaleString()
                                         : "-"}
                                 </td>
-                                <td className="px-4 py-3">{t.name} {t.surname}</td>
+                                <td className="px-4 py-3">
+                                    {t.name} {t.surname}
+                                </td>
                                 <td className="px-4 py-3">{t.email}</td>
                                 <td className="px-4 py-3">{t.phone ?? "-"}</td>
+                                {tab === "employee" && (
+                                    <td className="px-4 py-3">
+                                        {t.creatorPersonEmail ?? "-"}
+                                    </td>
+                                )}
                                 <td className="px-4 py-3 max-w-xs truncate hover:whitespace-normal hover:bg-[#1a1a2e]/95 hover:rounded-lg hover:p-2 hover:shadow-xl">
                                     {t.description}
                                 </td>
@@ -178,10 +230,10 @@ const AdminPanel: React.FC = () => {
                                 </td>
                             </tr>
                         ))}
-                        {tickets.length === 0 && (
+                        {filteredTickets.length === 0 && (
                             <tr>
                                 <td
-                                    colSpan={8}
+                                    colSpan={tab === "employee" ? 9 : 8}
                                     className="text-center text-gray-400 py-10"
                                 >
                                     Ticket bulunamadı

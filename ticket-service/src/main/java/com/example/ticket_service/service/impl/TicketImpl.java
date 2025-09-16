@@ -11,6 +11,11 @@ import io.jsonwebtoken.Claims;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -28,7 +33,11 @@ public class TicketImpl implements TicketService {
     private final CategoryRepository categoryRepository;
     private final TicketAssignmentRepository assignmentRepository;
     private final JwtUtil jwtUtil;
-    private static final String PERSON_SERVICE_URL = "http://localhost:8082/api/persons/";
+
+    // 🔹 Artık .env’den okunuyor
+    @Value("${PERSON_SERVICE_URL}")
+    private String personServiceUrl;
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     // Helper: JWT'den personId oku
@@ -45,7 +54,7 @@ public class TicketImpl implements TicketService {
         }
     }
 
-    // Public Ticket
+    // === Public Ticket ===
     @Override
     @Transactional
     public TicketResponse createPublicTicket(PublicTicketRequest req) {
@@ -67,8 +76,10 @@ public class TicketImpl implements TicketService {
                 .employee(false) // müşteri açtı
                 .build();
         ticket = ticketRepository.save(ticket);
+
         CategoryEntity category = categoryRepository.findById(req.categoryId().intValue())
                 .orElseThrow(() -> new IllegalArgumentException("Kategori bulunamadı"));
+
         TicketAssignmentEntity ta = TicketAssignmentEntity.builder()
                 .ticket(ticket)
                 .departmentId(category.getTargetDepartmentId())
@@ -76,6 +87,7 @@ public class TicketImpl implements TicketService {
                 .assignedDate(LocalDateTime.now())
                 .inPool(false)
                 .build();
+
         assignmentRepository.save(ta);
         return toResponse(ticket);
     }
@@ -86,7 +98,7 @@ public class TicketImpl implements TicketService {
                 .stream().map(this::toResponse).toList();
     }
 
-    // Departman Havuzu
+    // === Departman Havuzu ===
     @Override
     public List<TicketResponse> listTicketsByDepartment(Long deptId) {
         return assignmentRepository.findByDepartmentId(deptId).stream()
@@ -96,7 +108,6 @@ public class TicketImpl implements TicketService {
                 .toList();
     }
 
-    // Üstlen
     @Override
     @Transactional
     public TicketResponse takeTicket(Long ticketId, Long deptId) {
@@ -107,15 +118,16 @@ public class TicketImpl implements TicketService {
         }
         Long personId = Optional.ofNullable(currentPersonId())
                 .orElseThrow(() -> new IllegalStateException("personId yok!"));
+
         a.setStatus("IN_PROGRESS");
         a.setAssignedDate(LocalDateTime.now());
         a.setPersonId(personId);
         a.setDepartmentId(null);
         assignmentRepository.save(a);
+
         return toResponse(a.getTicket());
     }
 
-    // Devret
     @Override
     @Transactional
     public TicketResponse reassignTicket(Long ticketId, Long fromDeptId, Long toDeptId) {
@@ -123,13 +135,16 @@ public class TicketImpl implements TicketService {
                 .max(Comparator.comparing(
                         a -> Optional.ofNullable(a.getAssignedDate()).orElse(LocalDateTime.MIN)))
                 .orElseThrow(() -> new IllegalArgumentException("Ticket için assignment bulunamadı"));
+
         Long actor = Optional.ofNullable(currentPersonId())
                 .orElseThrow(() -> new IllegalStateException("Devreden personId bulunamadı!"));
+
         oldAssign.setPersonId(actor);
         oldAssign.setStatus("TRANSFERRED");
         oldAssign.setCompletedDate(LocalDateTime.now());
         oldAssign.setDepartmentId(null);
         assignmentRepository.save(oldAssign);
+
         TicketAssignmentEntity newAssign = TicketAssignmentEntity.builder()
                 .ticket(oldAssign.getTicket())
                 .departmentId(toDeptId)
@@ -137,20 +152,23 @@ public class TicketImpl implements TicketService {
                 .assignedDate(LocalDateTime.now())
                 .inPool(false)
                 .build();
+
         assignmentRepository.save(newAssign);
         return toResponse(oldAssign.getTicket());
     }
 
-    // Kapat
     @Override
     @Transactional
     public TicketResponse closeTicket(Long ticketId) {
         TicketEntity t = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new IllegalArgumentException("Ticket bulunamadı"));
+
         if (Boolean.FALSE.equals(t.getActive())) return toResponse(t);
+
         t.setActive(false);
         t.setClosedDate(LocalDateTime.now());
         ticketRepository.save(t);
+
         assignmentRepository.findByTicketId(ticketId).forEach(a -> {
             if (!"DONE".equals(a.getStatus())) {
                 a.setStatus("DONE");
@@ -160,10 +178,11 @@ public class TicketImpl implements TicketService {
             }
             assignmentRepository.save(a);
         });
+
         return toResponse(t);
     }
 
-    // Departman İçi Ticket
+    // === Internal Ticket ===
     @Override
     @Transactional
     public TicketResponse createInternalTicket(InternalTicketRequest req) {
@@ -174,6 +193,7 @@ public class TicketImpl implements TicketService {
         if (req.departmentId() == null) {
             throw new IllegalArgumentException("Departman seçilmesi zorunludur");
         }
+
         TicketEntity ticket = TicketEntity.builder()
                 .issue(req.issue())
                 .priority(req.priority())
@@ -182,7 +202,9 @@ public class TicketImpl implements TicketService {
                 .creatorPersonId(personId)
                 .employee(true)
                 .build();
+
         ticket = ticketRepository.save(ticket);
+
         TicketAssignmentEntity ta = TicketAssignmentEntity.builder()
                 .ticket(ticket)
                 .departmentId(req.departmentId())
@@ -190,17 +212,19 @@ public class TicketImpl implements TicketService {
                 .assignedDate(LocalDateTime.now())
                 .inPool(false)
                 .build();
+
         assignmentRepository.save(ta);
         return toResponse(ticket);
     }
 
-    // Kullanıcı Ticketi
+    // === User Ticket ===
     @Override
     @Transactional
     public TicketResponse createUserTicket(String issue, String priority, Long categoryId, Long personId) {
         if (personId == null) {
             throw new IllegalStateException("User ticket açan personId bulunamadı!");
         }
+
         TicketEntity ticket = TicketEntity.builder()
                 .issue(issue)
                 .priority(priority)
@@ -209,7 +233,9 @@ public class TicketImpl implements TicketService {
                 .creatorPersonId(personId)
                 .employee(true)
                 .build();
+
         ticket = ticketRepository.save(ticket);
+
         if (categoryId != null) {
             CategoryEntity category = categoryRepository.findById(categoryId.intValue())
                     .orElseThrow(() -> new IllegalArgumentException("Kategori bulunamadı"));
@@ -221,6 +247,7 @@ public class TicketImpl implements TicketService {
                     .assignedDate(LocalDateTime.now())
                     .inPool(false)
                     .build();
+
             assignmentRepository.save(ta);
         }
         return toResponse(ticket);
@@ -260,27 +287,44 @@ public class TicketImpl implements TicketService {
                 .toList();
     }
 
+    // === Helper: Ticket'i DTO'ya dönüştür ===
     private TicketResponse toResponse(TicketEntity t) {
         List<TicketAssignmentEntity> all = assignmentRepository.findByTicketId(t.getId());
         TicketAssignmentEntity latest = all.stream()
                 .max(Comparator.comparing(
                         a -> Optional.ofNullable(a.getAssignedDate()).orElse(LocalDateTime.MIN)))
                 .orElse(null);
+
         TicketAssignmentEntity lastTransferred = all.stream()
                 .filter(a -> "TRANSFERRED".equals(a.getStatus()))
                 .max(Comparator.comparing(
                         a -> Optional.ofNullable(a.getCompletedDate()).orElse(LocalDateTime.MIN)))
                 .orElse(null);
+
         // Ticket'ı açan çalışanın bilgileri
         String creatorEmail = null;
         String creatorName = null;
         String creatorSurname = null;
+
         if (t.getCreatorPersonId() != null) {
             try {
-                Map<?, ?> person = restTemplate.getForObject(
-                        PERSON_SERVICE_URL + t.getCreatorPersonId(),
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                String token = auth != null ? String.valueOf(auth.getCredentials()) : null;
+
+                HttpHeaders headers = new HttpHeaders();
+                if (token != null) {
+                    headers.setBearerAuth(token);
+                }
+                HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+                ResponseEntity<Map> response = restTemplate.exchange(
+                        personServiceUrl + t.getCreatorPersonId(),
+                        HttpMethod.GET,
+                        entity,
                         Map.class
                 );
+
+                Map<?, ?> person = response.getBody();
                 if (person != null) {
                     creatorEmail = (String) person.get("email");
                     creatorName = (String) person.get("name");
@@ -295,12 +339,26 @@ public class TicketImpl implements TicketService {
         String assigneeEmail = null;
         String assigneeName = null;
         String assigneeSurname = null;
+
         if (latest != null && latest.getPersonId() != null) {
             try {
-                Map<?, ?> person = restTemplate.getForObject(
-                        PERSON_SERVICE_URL + latest.getPersonId(),
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                String token = auth != null ? String.valueOf(auth.getCredentials()) : null;
+
+                HttpHeaders headers = new HttpHeaders();
+                if (token != null) {
+                    headers.setBearerAuth(token);
+                }
+                HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+                ResponseEntity<Map> response = restTemplate.exchange(
+                        personServiceUrl + latest.getPersonId(),
+                        HttpMethod.GET,
+                        entity,
                         Map.class
                 );
+
+                Map<?, ?> person = response.getBody();
                 if (person != null) {
                     assigneeEmail = (String) person.get("email");
                     assigneeName = (String) person.get("name");
@@ -310,6 +368,7 @@ public class TicketImpl implements TicketService {
                 log.warn("Person-service (assignee) çağrısı başarısız oldu: {}", e.getMessage());
             }
         }
+
         return TicketResponse.builder()
                 .id(t.getId())
                 // müşteri bilgileri
