@@ -106,10 +106,6 @@ const LoginPage: React.FC = () => {
                     >
                         Giriş
                     </button>
-
-                    <div className="flex justify-end mt-3 text-sm text-blue-600">
-                        <a href="/register">Kayıt ol</a>
-                    </div>
                 </form>
             </div>
         </div>

@@ -66,19 +66,24 @@ export interface DeptTicket {
     priority: string;
     active: boolean;
     createdDate?: string;
-    closedDate?: string;   // ✅ eksik olan alan eklendi
+    closedDate?: string;
 
-    // 🔹 backend’den gelen alanlar
+    // ✅ Backend’den gelen çalışan bilgileri
+    creatorPersonEmail?: string | null;
+    creatorPersonName?: string | null;
+    creatorPersonSurname?: string | null;
+
+    // 🔹 Backend’den gelen durum bilgileri
     status?: string;
     departmentId?: number;
     employee: boolean; // true = personel açtı, false = müşteri açtı
 
-    // ✅ yeni eklenen alanlar (çalışan bilgileri için)
+    // ✅ Üstlenen kişi bilgileri
     assigneeEmail?: string;
     assigneeName?: string;
     assigneeSurname?: string;
 
-    // ✅ devretme takibi için ek alanlar
+    // ✅ Devretme takibi için ek alanlar
     fromDepartmentId?: number;
     toDepartmentId?: number;
 }

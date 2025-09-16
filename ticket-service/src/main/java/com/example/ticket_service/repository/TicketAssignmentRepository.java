@@ -50,4 +50,11 @@ where a.ticket.id = :ticketId and a.departmentId = :deptId
 """)
     Optional<TicketAssignmentEntity> findForUpdate(@Param("ticketId") Long ticketId,
                                                    @Param("deptId") Long deptId);
+    // ✅ Sadece gerçekten benim KAPATTIĞIM ticketlar (DONE olanlar)
+    @Query("""
+        select a from TicketAssignmentEntity a
+        where a.personId = :personId
+        and a.status = 'DONE'
+    """)
+    List<TicketAssignmentEntity> findMyClosedOnly(@Param("personId") Long personId);
 }

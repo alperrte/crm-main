@@ -6,6 +6,7 @@ import {
     getCategories,
     Category,
 } from "../api/ticketApi";
+import { useNavigate } from "react-router-dom";
 
 const UserPanel: React.FC = () => {
     const [tickets, setTickets] = useState<DeptTicket[]>([]);
@@ -16,7 +17,15 @@ const UserPanel: React.FC = () => {
         categoryId: "",
     });
 
-    // 🔹 Tarih formatlama helper (sadece gün/ay/yıl)
+    const navigate = useNavigate();
+
+    // 🔹 Çıkış işlemi
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        navigate("/login");
+    };
+
+    // 🔹 Tarih formatlama helper
     const formatDate = (dateString?: string) => {
         if (!dateString) return "-";
         try {
@@ -68,7 +77,15 @@ const UserPanel: React.FC = () => {
     };
 
     return (
-        <div className="p-6 bg-gray-900 min-h-screen text-white">
+        <div className="p-6 bg-gray-900 min-h-screen text-white relative">
+            {/* 🔹 Çıkış butonu */}
+            <button
+                onClick={handleLogout}
+                className="absolute top-6 right-6 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow-md transition"
+            >
+                Çıkış Yap
+            </button>
+
             <h1 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">
                 🎫 Kullanıcı Paneli
             </h1>

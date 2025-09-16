@@ -10,12 +10,7 @@ import { getMyProfile, MyProfile } from "../api/personApi";
 import { Link, useNavigate } from "react-router-dom";
 import { getAllDepartments, Department } from "../api/departmentApi";
 
-type FilterType =
-    | "ALL"
-    | "MY_ASSIGNED"
-    | "MY_CLOSED"
-    | "MY_TRANSFERRED"
-    | "INCOMING_TRANSFERRED";
+type FilterType = "ALL" | "MY_ASSIGNED" | "MY_CLOSED" | "MY_TRANSFERRED";
 
 const UserPage: React.FC = () => {
     const [tickets, setTickets] = useState<DeptTicket[]>([]);
@@ -106,17 +101,6 @@ const UserPage: React.FC = () => {
                     { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
                 );
                 setTickets(await res.json());
-            } else if (filter === "INCOMING_TRANSFERRED") {
-                const data = await getDeptTickets(deptId);
-                // ✅ sadece başka departmandan gelen ticketlar
-                setTickets(
-                    data.filter(
-                        (t: DeptTicket) =>
-                            t.status === "OPEN" &&
-                            t.fromDepartmentId !== null &&
-                            t.toDepartmentId === deptId
-                    )
-                );
             }
         } catch (e) {
             console.error("Ticket yüklenemedi:", e);
@@ -188,7 +172,7 @@ const UserPage: React.FC = () => {
         fetchTickets();
     };
 
-    // Öncelik badge componenti
+    // Öncelik badge
     const priorityBadge = (priority: string) => {
         switch (priority) {
             case "HIGH":
@@ -213,77 +197,65 @@ const UserPage: React.FC = () => {
         }
     };
 
-    // ✅ tarih formatlama (sadece tarih)
     const formatDate = (d?: string) => {
         if (!d) return "—";
         return new Date(d).toLocaleDateString("tr-TR");
     };
 
-    // ✅ Müşteri ve çalışan ticket ayrımı
     const customerTickets = tickets.filter((t) => !t.employee);
     const employeeTickets = tickets.filter((t) => t.employee);
 
+    // ✅ tablo render
     const renderTable = (list: DeptTicket[], type: "CUSTOMER" | "EMPLOYEE") => (
         <div className="mb-8">
             <h2 className="text-lg font-semibold mb-2">
-                {type === "CUSTOMER"
-                    ? "👤 Müşteri Ticketları"
-                    : "💼 Çalışan Ticketları"}
+                {type === "CUSTOMER" ? "👤 Müşteri Ticketları" : "💼 Çalışan Ticketları"}
             </h2>
             <div className="bg-gray-800 rounded-lg shadow overflow-visible">
                 <table className="w-full text-left">
                     <thead className="bg-purple-700 text-white">
                     <tr>
-                        {filter !== "MY_CLOSED" &&
-                            filter !== "MY_TRANSFERRED" && (
-                                <th className="p-3">İşlemler</th>
-                            )}
+                        {filter !== "MY_CLOSED" && filter !== "MY_TRANSFERRED" && (
+                            <th className="p-3">İşlemler</th>
+                        )}
                         <th className="p-3">ID</th>
+                        <th className="p-3">Ad Soyad</th>
+                        <th className="p-3">Email</th>
                         <th className="p-3">Konu</th>
                         <th className="p-3">Öncelik</th>
                         <th className="p-3">Durum</th>
                         <th className="p-3">Açılış Tarihi</th>
-                        <th className="p-3">Kapanış Tarihi</th>
-                        {type === "CUSTOMER" && (
-                            <>
-                                <th className="p-3">Email</th>
-                                <th className="p-3">Ad</th>
-                                <th className="p-3">Soyad</th>
-                                <th className="p-3">Telefon</th>
-                            </>
-                        )}
-                        {filter === "INCOMING_TRANSFERRED" && (
-                            <th className="p-3">Geldiği Departman</th>
-                        )}
+
+                        {/* ✅ Sadece Kapattıklarım için kapanış tarihi */}
+                        {filter === "MY_CLOSED" && <th className="p-3">Kapanış Tarihi</th>}
+
+                        {type === "CUSTOMER" && <th className="p-3">Telefon</th>}
                     </tr>
                     </thead>
                     <tbody>
                     {list.length === 0 ? (
                         <tr>
-                            <td
-                                colSpan={12}
-                                className="p-3 text-center"
-                            >
+                            <td colSpan={12} className="p-3 text-center">
                                 Henüz ticket bulunmuyor.
                             </td>
                         </tr>
                     ) : (
                         list.map((t) => (
-                            <tr
-                                key={t.id}
-                                className="border-b border-gray-700"
-                            >
+                            <tr key={t.id} className="border-b border-gray-700">
                                 {filter !== "MY_CLOSED" &&
                                     filter !== "MY_TRANSFERRED" && (
                                         <td className="p-3">
-                                            {/* ✅ Dropdown sadece MY_ASSIGNED için */}
-                                            {filter === "MY_ASSIGNED" && t.status === "IN_PROGRESS" ? (
+                                            {/* 🔹 Eğer MY_ASSIGNED ve ticket aktifse → İşlemler menüsü */}
+                                            {filter === "MY_ASSIGNED" &&
+                                            t.status === "IN_PROGRESS" ? (
                                                 <div className="relative inline-block text-left">
                                                     <button
                                                         className="px-3 py-1 bg-purple-600 text-white rounded"
                                                         onClick={(e) => {
-                                                            const menu = e.currentTarget.nextElementSibling as HTMLElement;
-                                                            if (menu) menu.classList.toggle("hidden");
+                                                            const menu = e.currentTarget
+                                                                .nextElementSibling as HTMLElement;
+                                                            if (menu)
+                                                                menu.classList.toggle("hidden");
                                                         }}
                                                     >
                                                         ⚙️ İşlemler ▼
@@ -305,62 +277,40 @@ const UserPage: React.FC = () => {
                                                 </div>
                                             ) : (
                                                 <>
-                                                    {/* ALL filtresi → Üstlen */}
-                                                    {filter === "ALL" && t.status === "OPEN" && (
-                                                        <button
-                                                            className="bg-green-500 text-white px-2 py-1 rounded"
-                                                            onClick={() => handleTake(t.id)}
-                                                        >
-                                                            Üstlen
-                                                        </button>
-                                                    )}
-                                                    {/* INCOMING_TRANSFERRED filtresi → Üstlen */}
-                                                    {filter === "INCOMING_TRANSFERRED" && t.status === "OPEN" && (
-                                                        <button
-                                                            className="bg-green-500 text-white px-2 py-1 rounded"
-                                                            onClick={() => handleTake(t.id)}
-                                                        >
-                                                            Üstlen
-                                                        </button>
-                                                    )}
+                                                    {filter === "ALL" &&
+                                                        t.status === "OPEN" && (
+                                                            <button
+                                                                className="bg-green-500 text-white px-2 py-1 rounded"
+                                                                onClick={() => handleTake(t.id)}
+                                                            >
+                                                                Üstlen
+                                                            </button>
+                                                        )}
                                                 </>
                                             )}
                                         </td>
                                     )}
                                 <td className="p-3">{t.id}</td>
-                                <td className="p-3">{t.issue}</td>
                                 <td className="p-3">
-                                    {priorityBadge(t.priority)}
+                                    {t.creatorPersonName
+                                        ? `${t.creatorPersonName} ${t.creatorPersonSurname ?? ""}`
+                                        : `${t.customerName ?? ""} ${t.customerSurname ?? ""}`}
                                 </td>
+                                <td className="p-3">
+                                    {t.creatorPersonEmail ?? t.customerEmail ?? "—"}
+                                </td>
+                                <td className="p-3">{t.issue}</td>
+                                <td className="p-3">{priorityBadge(t.priority)}</td>
                                 <td className="p-3">{t.status}</td>
                                 <td className="p-3">{formatDate(t.createdDate)}</td>
-                                <td className="p-3">{formatDate(t.closedDate)}</td>
-                                {type === "CUSTOMER" && (
-                                    <>
-                                        <td className="p-3">
-                                            {t.customerEmail || "—"}
-                                        </td>
-                                        <td className="p-3">
-                                            {t.customerName || "—"}
-                                        </td>
-                                        <td className="p-3">
-                                            {t.customerSurname || "—"}
-                                        </td>
-                                        <td className="p-3">
-                                            {t.customerPhone || "—"}
-                                        </td>
-                                    </>
+
+                                {/* ✅ Sadece Kapattıklarım için kapanış tarihi */}
+                                {filter === "MY_CLOSED" && (
+                                    <td className="p-3">{formatDate(t.closedDate)}</td>
                                 )}
-                                {filter === "INCOMING_TRANSFERRED" && (
-                                    <td className="p-3">
-                                        {
-                                            departments.find(
-                                                (d) =>
-                                                    d.id ===
-                                                    t.fromDepartmentId
-                                            )?.name || "?"
-                                        }
-                                    </td>
+
+                                {type === "CUSTOMER" && (
+                                    <td className="p-3">{t.customerPhone || "—"}</td>
                                 )}
                             </tr>
                         ))
@@ -401,9 +351,7 @@ const UserPage: React.FC = () => {
                 <button
                     onClick={() => setFilter("MY_ASSIGNED")}
                     className={`px-4 py-2 rounded-lg ${
-                        filter === "MY_ASSIGNED"
-                            ? "bg-green-500"
-                            : "bg-gray-700"
+                        filter === "MY_ASSIGNED" ? "bg-green-500" : "bg-gray-700"
                     } text-white`}
                 >
                     Üstlendiklerim
@@ -411,9 +359,7 @@ const UserPage: React.FC = () => {
                 <button
                     onClick={() => setFilter("MY_CLOSED")}
                     className={`px-4 py-2 rounded-lg ${
-                        filter === "MY_CLOSED"
-                            ? "bg-red-500"
-                            : "bg-gray-700"
+                        filter === "MY_CLOSED" ? "bg-red-500" : "bg-gray-700"
                     } text-white`}
                 >
                     Kapattıklarım
@@ -421,29 +367,15 @@ const UserPage: React.FC = () => {
                 <button
                     onClick={() => setFilter("MY_TRANSFERRED")}
                     className={`px-4 py-2 rounded-lg ${
-                        filter === "MY_TRANSFERRED"
-                            ? "bg-amber-500"
-                            : "bg-gray-700"
+                        filter === "MY_TRANSFERRED" ? "bg-amber-500" : "bg-gray-700"
                     } text-white`}
                 >
                     Devrettiklerim
                 </button>
                 <button
-                    onClick={() => setFilter("INCOMING_TRANSFERRED")}
-                    className={`px-4 py-2 rounded-lg ${
-                        filter === "INCOMING_TRANSFERRED"
-                            ? "bg-blue-500"
-                            : "bg-gray-700"
-                    } text-white`}
-                >
-                    Devredilenler
-                </button>
-                <button
                     onClick={() => setFilter("ALL")}
                     className={`px-4 py-2 rounded-lg ${
-                        filter === "ALL"
-                            ? "bg-purple-500"
-                            : "bg-gray-700"
+                        filter === "ALL" ? "bg-purple-500" : "bg-gray-700"
                     } text-white`}
                 >
                     Tümü
@@ -462,9 +394,7 @@ const UserPage: React.FC = () => {
                         <select
                             className="w-full border rounded p-2 mb-3"
                             value={selectedDeptId}
-                            onChange={(e) =>
-                                setSelectedDeptId(Number(e.target.value))
-                            }
+                            onChange={(e) => setSelectedDeptId(Number(e.target.value))}
                         >
                             <option value="" disabled>
                                 Departman seç

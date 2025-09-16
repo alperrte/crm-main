@@ -6,7 +6,7 @@ const AdminPanel: React.FC = () => {
     const [tickets, setTickets] = useState<AdminTicket[]>([]);
     const [tErr, setTErr] = useState<string>("");
     const [menuOpen, setMenuOpen] = useState(false);
-    const [tab, setTab] = useState<"customer" | "employee">("customer");
+    const [tab, setTab] = useState<"customer" | "employee" | "closed">("customer");
 
     const navigate = useNavigate();
 
@@ -43,10 +43,11 @@ const AdminPanel: React.FC = () => {
             ? "bg-gradient-to-r from-green-400 to-emerald-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow"
             : "bg-gradient-to-r from-gray-400 to-gray-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow";
 
-    // ✅ Tab’a göre filtrelenmiş ticket listesi
-    const filteredTickets = tickets.filter((t) =>
-        tab === "customer" ? !t.employee : t.employee
-    );
+    // ✅ Filtreler
+    const activeCustomerTickets = tickets.filter((t) => !t.employee && t.active);
+    const activeEmployeeTickets = tickets.filter((t) => t.employee && t.active);
+    const closedCustomerTickets = tickets.filter((t) => !t.employee && !t.active);
+    const closedEmployeeTickets = tickets.filter((t) => t.employee && !t.active);
 
     return (
         <div className="min-h-screen p-6 bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] text-white">
@@ -166,6 +167,16 @@ const AdminPanel: React.FC = () => {
                     >
                         Çalışan Ticketları
                     </button>
+                    <button
+                        onClick={() => setTab("closed")}
+                        className={`px-4 py-2 rounded-lg transition ${
+                            tab === "closed"
+                                ? "bg-indigo-600"
+                                : "bg-gray-600 hover:bg-gray-500"
+                        }`}
+                    >
+                        Kapalı Ticketlar
+                    </button>
                 </div>
 
                 {/* Ticket Table */}
@@ -175,69 +186,83 @@ const AdminPanel: React.FC = () => {
                             Ticketlar alınamadı: {tErr}
                         </div>
                     )}
-                    <table className="w-full border-collapse">
-                        <thead>
-                        <tr className="bg-gradient-to-r from-indigo-500 to-purple-600 text-left">
-                            <th className="px-4 py-3">ID</th>
-                            <th className="px-4 py-3">Tarih</th>
-                            <th className="px-4 py-3">Ad Soyad</th>
-                            <th className="px-4 py-3">Email</th>
-                            <th className="px-4 py-3">Departman</th>
-                            <th className="px-4 py-3">Açıklama</th>
-                            <th className="px-4 py-3">Öncelik</th>
-                            <th className="px-4 py-3">Aktif</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {filteredTickets.map((t, i) => (
-                            <tr
-                                key={t.id}
-                                className={`transition hover:bg-indigo-500/10 ${
-                                    i % 2 === 0 ? "bg-transparent" : "bg-white/5"
-                                }`}
-                            >
-                                <td className="px-4 py-3">{t.id}</td>
-                                <td className="px-4 py-3">
-                                    {t.createdDate
-                                        ? new Date(t.createdDate).toLocaleDateString("tr-TR")
-                                        : "-"}
-                                </td>
-                                <td className="px-4 py-3">
-                                    {`${t.name ?? ""} ${t.surname ?? ""}`}
-                                </td>
-                                <td className="px-4 py-3">{t.email ?? "-"}</td>
-                                <td className="px-4 py-3">{t.departmentName ?? "-"}</td>
-                                <td className="px-4 py-3 max-w-xs truncate hover:whitespace-normal hover:bg-[#1a1a2e]/95 hover:rounded-lg hover:p-2 hover:shadow-xl">
-                                    {t.description}
-                                </td>
-                                <td className="px-4 py-3">
-                                        <span className={priorityClass(t.priority)}>
-                                            {t.priority}
-                                        </span>
-                                </td>
-                                <td className="px-4 py-3">
-                                        <span className={statusClass(t.active)}>
-                                            {t.active ? "Evet" : "Hayır"}
-                                        </span>
-                                </td>
-                            </tr>
-                        ))}
-                        {filteredTickets.length === 0 && (
-                            <tr>
-                                <td
-                                    colSpan={8}
-                                    className="text-center text-gray-400 py-10"
-                                >
-                                    Ticket bulunamadı
-                                </td>
-                            </tr>
-                        )}
-                        </tbody>
-                    </table>
+
+                    {/* Normal müşteri / çalışan */}
+                    {tab === "customer" && (
+                        <TicketTable tickets={activeCustomerTickets} priorityClass={priorityClass} statusClass={statusClass} />
+                    )}
+                    {tab === "employee" && (
+                        <TicketTable tickets={activeEmployeeTickets} priorityClass={priorityClass} statusClass={statusClass} />
+                    )}
+
+                    {/* Kapalı ticketlar */}
+                    {tab === "closed" && (
+                        <>
+                            <h3 className="text-lg font-semibold mb-3">👤 Müşteri Kapalı Ticketlar</h3>
+                            <TicketTable tickets={closedCustomerTickets} priorityClass={priorityClass} statusClass={statusClass} isClosed />
+
+                            <h3 className="text-lg font-semibold mt-8 mb-3">💼 Çalışan Kapalı Ticketlar</h3>
+                            <TicketTable tickets={closedEmployeeTickets} priorityClass={priorityClass} statusClass={statusClass} isClosed />
+                        </>
+                    )}
                 </div>
             </div>
         </div>
     );
 };
+
+// ✅ Reusable tablo componenti
+const TicketTable: React.FC<{
+    tickets: AdminTicket[];
+    priorityClass: (p: string) => string;
+    statusClass: (active: boolean) => string;
+    isClosed?: boolean; // 🔹 eklendi
+}> = ({ tickets, priorityClass, statusClass, isClosed = false }) => (
+    <table className="w-full border-collapse mb-6">
+        <thead>
+        <tr className="bg-gradient-to-r from-indigo-500 to-purple-600 text-left">
+            <th className="px-4 py-3">ID</th>
+            <th className="px-4 py-3">Tarih</th>
+            <th className="px-4 py-3">Ad Soyad</th>
+            <th className="px-4 py-3">Email</th>
+            {!isClosed && <th className="px-4 py-3">Departman</th>}
+            <th className="px-4 py-3">Açıklama</th>
+            {!isClosed && <th className="px-4 py-3">Öncelik</th>}
+            {!isClosed && <th className="px-4 py-3">Aktif</th>}
+        </tr>
+        </thead>
+        <tbody>
+        {tickets.map((t, i) => (
+            <tr key={t.id} className={`transition hover:bg-indigo-500/10 ${i % 2 === 0 ? "bg-transparent" : "bg-white/5"}`}>
+                <td className="px-4 py-3">{t.id}</td>
+                <td className="px-4 py-3">{t.createdDate ? new Date(t.createdDate).toLocaleDateString("tr-TR") : "-"}</td>
+                <td className="px-4 py-3">{`${t.name ?? ""} ${t.surname ?? ""}`}</td>
+                <td className="px-4 py-3">{t.email ?? "-"}</td>
+                {!isClosed && <td className="px-4 py-3">{t.departmentName ?? "-"}</td>}
+                <td className="px-4 py-3 max-w-xs truncate hover:whitespace-normal hover:bg-[#1a1a2e]/95 hover:rounded-lg hover:p-2 hover:shadow-xl">
+                    {t.description}
+                </td>
+                {!isClosed && (
+                    <td className="px-4 py-3">
+                        <span className={priorityClass(t.priority)}>{t.priority}</span>
+                    </td>
+                )}
+                {!isClosed && (
+                    <td className="px-4 py-3">
+                        <span className={statusClass(t.active)}>{t.active ? "Evet" : "Hayır"}</span>
+                    </td>
+                )}
+            </tr>
+        ))}
+        {tickets.length === 0 && (
+            <tr>
+                <td colSpan={isClosed ? 5 : 8} className="text-center text-gray-400 py-10">
+                    Ticket bulunamadı
+                </td>
+            </tr>
+        )}
+        </tbody>
+    </table>
+);
 
 export default AdminPanel;

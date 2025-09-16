@@ -264,11 +264,12 @@ public class TicketImpl implements TicketService {
 
     @Override
     public List<TicketResponse> listMyClosed(Long personId) {
-        return assignmentRepository.findMyClosed(personId).stream()
+        return assignmentRepository.findMyClosedOnly(personId).stream()
                 .map(TicketAssignmentEntity::getTicket)
                 .map(this::toResponse)
                 .toList();
     }
+
 
     @Override
     public List<TicketResponse> listMyTransferred(Long personId) {
