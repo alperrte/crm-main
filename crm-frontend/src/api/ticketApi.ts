@@ -123,22 +123,24 @@ export const getCategories = async (): Promise<Category[]> => {
 export const getAdminTickets = async (): Promise<AdminTicket[]> => {
     const res = await ticketApi.get("/api/admin/tickets");
     const arr = res.data as Array<any>;
-    return arr.map((t) => ({
-        id: t.id,
-        email: t.customerEmail ?? null,   // müşteri email
-        name: t.customerName ?? null,
-        surname: t.customerSurname ?? null,
-        phone: t.customerPhone ?? null,
-        description: t.issue,
-        priority: t.priority,
-        active: t.active,
-        createdDate: t.createdDate,
-        closedDate: t.closedDate,
-        employee: t.employee ?? false,                // ✅
-        creatorPersonEmail: t.creatorPersonEmail ?? null, // ✅
-        creatorPersonName: t.creatorPersonName ?? null,   // ✅
-        creatorPersonSurname: t.creatorPersonSurname ?? null // ✅
-    }));
+    return arr.map((t) => {
+        const isEmployee = t.employee === true;
+
+        return {
+            id: t.id,
+            email: isEmployee ? t.creatorPersonEmail : t.customerEmail,
+            name: isEmployee ? t.creatorPersonName : t.customerName,
+            surname: isEmployee ? t.creatorPersonSurname : t.customerSurname,
+            phone: isEmployee ? null : t.customerPhone,
+            description: t.issue,
+            priority: t.priority,
+            active: t.active,
+            createdDate: t.createdDate,
+            closedDate: t.closedDate,
+            employee: t.employee,
+            creatorPersonEmail: t.creatorPersonEmail, // çalışan açtıysa
+        };
+    });
 };
 
 // ========== Departman Ticket API Fonksiyonları (PERSON/ADMIN) ==========
